@@ -200,3 +200,140 @@ export const refreshAccessToken = asyncHandler(async (req, res) => {
     throw new ApiError(401, error.message || "invalid refresh Token");
   }
 });
+
+//*.........................Change Password ...........................
+export const changeCurrentPassword = asyncHandler(async (req, res) => {
+  const { oldPassword, newPassword } = req.body;
+  console.log(req?.user);
+  const user = await User.findById(req?.user._id);
+
+  const checkOldPassword = await user.checkPassword(oldPassword);
+
+  if (!checkOldPassword) {
+    throw new ApiError(401, "invalid old password password");
+  }
+
+  user.password = newPassword;
+  await user.save({ validateBeforeSave: false });
+
+  return res
+    .status(200)
+    .json(new ApiResponse("password updated successfully", 200, {}));
+});
+
+//*.........................get Current user ...........................
+export const getCurrentUser = asyncHandler(async (req, res) => {
+  return res
+    .status(200)
+    .json(new ApiResponse("current user fetched succesfully", 200, req?.user));
+});
+
+//*.........................update account details ...........................
+export const updateAccountDetails = asyncHandler(async (req, res) => {
+  const { fullName, email } = req.body;
+  console.log(req?.user);
+
+  if (!fullName && !email) {
+    throw new ApiError(401, "required eamil or password to update");
+  }
+  let user;
+  // let user = await User.findById(req?.user._id).select("-password");
+  // if (!user) throw new ApiError(401, "unauthorized update request");
+
+  if (fullName && email) {
+    user = await User.findByIdAndUpdate(
+      req.user?._id,
+      {
+        $set: {
+          fullName,
+          email,
+        },
+      },
+      { new: true }
+    ).select("-password");
+  }
+
+  if (email && !fullName) {
+    user = await User.findByIdAndUpdate(
+      req.user?._id,
+      {
+        $set: {
+          email,
+        },
+      },
+      { new: true }
+    ).select("-password");
+  }
+
+  if (fullName && !email) {
+    user = await User.findByIdAndUpdate(
+      req.user?._id,
+      {
+        $set: {
+          fullName,
+        },
+      },
+      { new: true }
+    ).select("-password");
+  }
+
+  if (!user) throw new ApiError(401, "unauthorized request");
+
+  return res
+    .status(200)
+    .json(new ApiResponse("user succesfully Updated", 200, user));
+});
+
+//*.........................update Avatar...........................
+export const updateUserAvatar = asyncHandler(async (req, res) => {
+  // const user = req.user;
+  const newAvatarlocalPath = req.file?.path;
+
+  if (!newAvatarlocalPath)
+    throw new ApiError(400, "avatar image file is missing");
+
+  const avatar = await uploadInCloudinary(newAvatarlocalPath);
+
+  if (!avatar) return new ApiError(501, "error while uploading");
+
+  const user = await User.findByIdAndUpdate(
+    req?.user._id,
+    {
+      $set: {
+        avatar,
+      },
+    },
+    { new: true }
+  ).select("-password");
+
+  // if (!user) throw new ApiError(4001, "unauthorized request");
+  return res
+    .status(200)
+    .json(new ApiResponse("avatar successfully updated", 200, user));
+});
+
+//*.........................update cover IMage ...........................
+export const updateUserCoverImage = asyncHandler(async (req, res) => {
+  // const user = req.user;
+  const coverImageLocal = req.file?.path;
+
+  if (!coverImageLocal) throw new ApiError(400, "cover image is missing");
+
+  const coverImage = await uploadInCloudinary(coverImageLocal);
+
+  if (!coverImage) return new ApiError(501, "error while uploading");
+
+  const user = await User.findByIdAndUpdate(
+    req?.user._id,
+    {
+      $set: {
+        coverImage,
+      },
+    },
+    { new: true }
+  ).select("-password");
+
+  return res
+    .status(200)
+    .json(new ApiResponse("coverImage successfully updated", 200, user));
+});
