@@ -6,6 +6,8 @@ import {
   refreshAccessToken,
   changeCurrentPassword,
   updateAccountDetails,
+  getUserChannelProfile,
+  getWatchHistory,
 } from "../controllers/user.controller.js";
 import { upload } from "../middleware/multer.middleware.js";
 import { verifyJwt } from "../middleware/auth.middleware.js";
@@ -24,7 +26,11 @@ router.route("/login").post(loginUser);
 
 router.route("/updatepassword").post(verifyJwt, changeCurrentPassword);
 
-router.route("/update+user+details").post(verifyJwt, updateAccountDetails);
+router.route("/update_userdetails").post(verifyJwt, updateAccountDetails);
+
+router.route("/:username").get(verifyJwt, getUserChannelProfile);
+
+router.route("/watch_history").get(verifyJwt, getWatchHistory);
 
 //* Secured routes
 router.route("/logout").post(verifyJwt, logoutUser);
