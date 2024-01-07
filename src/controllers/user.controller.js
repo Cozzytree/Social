@@ -149,9 +149,7 @@ export const logoutUser = asyncHandler(async (req, res) => {
     { $set: { refreshToken: undefined } },
     { new: true }
   );
-
   const options = { httpOnly: true, secure: true };
-
   return res
     .status(200)
     .clearCookie("accessToken", options)
@@ -409,9 +407,13 @@ export const getUserChannelProfile = asyncHandler(async (req, res) => {
 });
 
 export const getWatchHistory = asyncHandler(async (req, res) => {
+  console.log(req?.user);
+
   const wh = await User.aggregate([
     {
-      $match: new mongoose.Types.ObjectId(req?.user._id),
+      $match: {
+        username: new mongoose.Types.ObjectId(req?.user._id),
+      },
     },
     {
       $lookup: {
@@ -453,7 +455,10 @@ export const getWatchHistory = asyncHandler(async (req, res) => {
       },
     },
   ]);
+  console.log(wh);
+  if (!wh) {
+    throw new ApiError(401, "couldn't get history");
+  }
 
-  if (!wh) throw new ApiError(401, "couldn't get history");
   return res.status(200).json(new ApiResponse("sucess", 200, wh));
 });
