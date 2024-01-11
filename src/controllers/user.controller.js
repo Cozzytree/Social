@@ -59,7 +59,6 @@ export const registerUser = asyncHandler(async (req, res) => {
     avatarPath = req.files.avatar[0].path;
   }
 
-  console.log(avatarPath);
   if (!avatarPath) {
     throw new ApiError(400, "Avatar is required");
   }
@@ -344,7 +343,7 @@ export const updateUserCoverImage = asyncHandler(async (req, res) => {
 
 export const getUserChannelProfile = asyncHandler(async (req, res) => {
   const { username } = req?.params;
-  console.log(username);
+  // console.log(username);
   if (!username) throw new ApiError(401, "couldn't find the user");
 
   const channel = await User.aggregate([
@@ -412,7 +411,7 @@ export const getWatchHistory = asyncHandler(async (req, res) => {
   const wh = await User.aggregate([
     {
       $match: {
-        username: new mongoose.Types.ObjectId(req?.user._id),
+        _id: new mongoose.Types.ObjectId(req?.user._id),
       },
     },
     {

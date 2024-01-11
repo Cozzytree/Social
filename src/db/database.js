@@ -2,7 +2,6 @@ import mongoose from "mongoose";
 import { DB_NAME } from "../constants.js";
 
 export async function connectDB() {
-  console.log(process.env.MONGODB_URL);
   try {
     mongoose.set("strictQuery", false);
     const connectionHost = await mongoose.connect(

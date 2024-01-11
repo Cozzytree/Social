@@ -12,9 +12,13 @@ cloudinary.config({
 export const deleteImage = async (filepath) => {
   try {
     if (!filepath) return;
-    await cloudinary.uploader.destroy(filepath, function (result) {
-      console.log(result);
-    });
+    const result = await cloudinary.uploader.destroy(
+      filepath,
+      function (result) {
+        return result;
+      }
+    );
+    return result;
   } catch (error) {
     throw new error(error.message);
   }
