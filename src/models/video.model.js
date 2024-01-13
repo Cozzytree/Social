@@ -4,7 +4,7 @@ import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2";
 const videosSchema = new Schema(
   {
     videoFile: { type: String, required: true },
-    thumbnail: { type: String },
+    thumbnail: { type: String, required: true },
     title: { type: String, required: true },
     description: { type: String },
     duration: { type: Number },

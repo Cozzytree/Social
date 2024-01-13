@@ -14,6 +14,7 @@ export const deleteImage = async (filepath) => {
     if (!filepath) return;
     const result = await cloudinary.uploader.destroy(
       filepath,
+      { resource_type: "auto" },
       function (result) {
         return result;
       }
