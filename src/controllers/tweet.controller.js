@@ -21,38 +21,66 @@ export const postTweet = asyncHandler(async (req, res) => {
 
 //*DELETE TWEET
 export const deleteTweet = asyncHandler(async (req, res) => {
-  const { id } = req.params;
+  const { _id } = req.user;
+  if (!_id) throw new ApiError(401, "unauthorized request");
 
-  const Deltweet = await Tweet.findOneAndDelete({ _id: id });
-  if (!Deltweet) throw new ApiError(401, "Wasn't able to delete");
+  const { tweetId } = req.params;
+  if (!tweetId) throw new ApiError(401, "invalid id");
 
-  return res.status(200).json("Successfullt deleted", 200, {});
+  const Deltweet = await Tweet.findOneAndDelete({ _id: tweetId });
+  if (!Deltweet) throw new ApiError(501, "error  while deleting");
+
+  return res.status(200).json(new ApiResponse("Successfully deleted", 200, {}));
 });
 
 //*Edit Tweet
 export const editTweet = asyncHandler(async (req, res) => {
-  const { id } = req.params;
+  const { _id } = req.user;
+  if (!_id) throw new ApiError(401, "unauthorized request");
+
+  const { tweetId } = req.params;
   const { content } = req.body;
 
   const newContent = await Tweet.findByIdAndUpdate(
-    id,
+    tweetId,
     { $set: { content } },
     { new: true }
   );
   if (!newContent) throw new ApiError(401, "error while uploading");
 
   return res
-    .success(200)
+    .status(200)
     .json(new ApiResponse("successfully updated", 200, newContent));
 });
 
 //* Get all tweets
 export const getAllTweet = asyncHandler(async (req, res) => {
-  await Tweet.find();
-  const alltweet = await Tweet.aggregate([
+  const allTweets = await Tweet.aggregate([
     {
-      $match: {},
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "ownerInfo",
+      },
     },
-    {},
+    {
+      $unwind: "$ownerInfo",
+    },
+    {
+      $project: {
+        content: 1,
+        ownerInfo: {
+          _id: 1,
+          username: 1,
+        },
+      },
+    },
   ]);
+
+  if (!allTweets) throw new ApiError(501, "was't able to get tweets");
+
+  return res
+    .status(200)
+    .json(new ApiResponse("here you have it", 200, allTweets));
 });

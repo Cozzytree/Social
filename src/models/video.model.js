@@ -5,6 +5,8 @@ const videosSchema = new Schema(
   {
     videoFile: { type: String, required: true },
     thumbnail: { type: String, required: true },
+    thumbnailPublicId: { type: String, required: true },
+    videoPublicId: { type: String, required: true },
     title: { type: String, required: true },
     description: { type: String },
     duration: { type: Number },
