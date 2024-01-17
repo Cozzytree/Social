@@ -5,68 +5,91 @@ import ApiResponse from "../utils/apiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
 const getVideoComments = asyncHandler(async (req, res) => {
-  //TODO: get all comments for a video
   const { videoId } = req.params;
   const { page = 1, limit = 10 } = req.query;
-  //   const commentId = await Comment.findById({});
 
   const data = await Comment.aggregate([
     {
       $match: {
-        video: videoId,
+        video: new mongoose.Types.ObjectId(videoId),
       },
     },
     {
-      $match: {
-        owner: new mongoose.Types.ObjectId(req?.user?._id),
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "user",
       },
     },
     {
       $project: {
         username: 1,
         content: 1,
+        "user.username": 1,
+        "user._id": 1,
+        "user.avatar": 1,
       },
     },
-    //     {
-    //       $lookup: {
-    //         from: "Video",
-    //         localField: "video",
-    //         foreignField: "_id",
-    //         as: "comments",
-    //       },
-    //     },
-    //     {
-    //       $lookup: {
-    //         from: "User",
-    //         localField: "owner",
-    //         foreignField: "_id",
-    //         as: "owner",
-    //       },
-    //     },
-    //     {
-    //       $project: {
-    //         comments: 1,
-    //         woner: 1,
-    //       },
-    //     },
+    {
+      $skip: page - 1,
+    },
+    {
+      $limit: parseInt(limit),
+    },
   ]);
-
-  console.log(data);
   if (!data) throw new ApiError(401, "error loading comments");
 
   return res.status(200).json(new ApiResponse("retrived comments", 200, data));
 });
 
 const addComment = asyncHandler(async (req, res) => {
-  // TODO: add a comment to a video
+  const { _id } = req.user;
+  if (!_id) throw new ApiError(401, "unauthorized request");
+
+  const { content } = req.body;
+  const { videoId } = req.params;
+
+  const data = await Comment.create({
+    content,
+    video: videoId,
+    owner: _id,
+  });
+  if (!data) throw new ApiError(501, "error while creating document");
+
+  return res.status(200).json(new ApiResponse("We got the data", 200, data));
 });
 
 const updateComment = asyncHandler(async (req, res) => {
-  // TODO: update a comment
+  const { _id } = req.user;
+  if (!_id) throw new ApiError(401, "unauthorized request");
+
+  const { commentId } = req.params;
+  const { content } = req.body;
+
+  const data = await Comment.findByIdAndUpdate(
+    commentId,
+    { $set: { content } },
+    { new: true }
+  );
+  if (!data) throw new ApiError(501, "error while updating comment");
+
+  return res
+    .status(200)
+    .json(new ApiResponse("successfully updated", 200, data));
 });
 
 const deleteComment = asyncHandler(async (req, res) => {
-  // TODO: delete a comment
+  const { _id } = req.user;
+  if (!_id) throw new ApiError(401, "unauthorized request");
+
+  const { commentId } = req.params;
+  if (!commentId) throw new ApiError(401, "invalid Id");
+
+  const data = await Comment.findOneAndDelete(commentId);
+  if (!data) throw new ApiError(501, "error while deleting");
+
+  return res.status(200).json(new ApiResponse("successfully deleted", 200, {}));
 });
 
 export { getVideoComments, addComment, updateComment, deleteComment };
