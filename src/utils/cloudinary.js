@@ -19,7 +19,7 @@ export async function uploadInCloudinary(localFilepath) {
 
     fs.unlinkSync(localFilepath);
 
-    return response?.secure_url;
+    return response;
   } catch (error) {
     fs.unlinkSync(localFilepath);
     return null;

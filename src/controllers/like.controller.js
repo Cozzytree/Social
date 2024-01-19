@@ -126,4 +126,19 @@ const getLikedVideos = asyncHandler(async (req, res) => {
   return res.status(200).json(new ApiResponse("here we are", 200, data));
 });
 
+const totalVideoLikes = asyncHandler(async (req, res) => {
+  const { videoId } = req.params;
+  const { _id } = req.user;
+
+  const data = await Like.aggregate([
+    {
+      $match: {
+        video: new mongoose.Types.ObjectId(videoId),
+      },
+    },
+  ]);
+
+  return res.status(200).json(new ApiResponse("success", 200, { data, _id }));
+});
+
 export { toggleCommentLike, toggleTweetLike, getLikedVideos, toggleVideoLike };

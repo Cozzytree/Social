@@ -103,6 +103,7 @@ export const updateTitle = asyncHandler(async (req, res) => {
 });
 
 export const getAllVideos = asyncHandler(async (req, res) => {
+  const { page = 1, limit = 10 } = req.query;
   const data = await Video.aggregate([
     {
       $lookup: {
@@ -133,14 +134,41 @@ export const getAllVideos = asyncHandler(async (req, res) => {
         title: 1,
         videoFile: 1,
         thumbnail: 1,
-        user: "$user.username",
-        avatar: "$user.avatar",
+        user: {
+          id: "$user._id",
+          username: "$user.username",
+          avatar: "$user.avatar",
+        },
+
         totalLikes: 1,
       },
     },
+    {
+      $facet: {
+        data: [
+          {
+            $skip: (page - 1) * limit,
+          },
+          {
+            $limit: limit,
+          },
+        ],
+        totalCount: [
+          {
+            $count: "totalCount",
+          },
+        ],
+      },
+    },
+    // {
+    //   $skip: (page - 1) * limit,
+    // },
+    // {
+    //   $limit: limit,
+    // },
   ]);
 
-  return res.status(200).json(new ApiResponse("hehe", 200, data));
+  return res.status(200).json(new ApiResponse("hehe", 200, data[0]));
 });
 
 export const updateThumbnail = asyncHandler(async (req, res) => {

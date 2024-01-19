@@ -69,10 +69,14 @@ export const getAllTweet = asyncHandler(async (req, res) => {
     },
     {
       $project: {
+        createdAt: 1,
+        updatedAt: 1,
         content: 1,
+        tweets: 1,
         ownerInfo: {
           _id: 1,
           username: 1,
+          avatar: 1,
         },
       },
     },

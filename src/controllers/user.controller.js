@@ -25,7 +25,7 @@ async function generate_AccessAnd_RefreshToken(id) {
 export const registerUser = asyncHandler(async (req, res) => {
   // get data from user
   const { username, email, password, fullName } = req.body;
-  console.log(username, email);
+
   if (
     [username, email, fullName, fullName].some(
       (fields) => fields?.trim() === ""
@@ -76,8 +76,10 @@ export const registerUser = asyncHandler(async (req, res) => {
     fullName,
     email,
     password,
-    avatar: avatar,
-    coverImage: coverImage || "",
+    avatar: avatar?.secure_url,
+    coverImage: coverImage?.secure_url || "",
+    avatarPublicId: avatar?.public_id,
+    coverImagePublicId: coverImage?.public_id || "",
   });
 
   //* removing password and refreshToken from sending response.
@@ -288,7 +290,7 @@ export const updateUserAvatar = asyncHandler(async (req, res) => {
   // const user = req.user;
   const newAvatarlocalPath = req.file?.path;
 
-  const oldImageToDelete = req?.user.avatar;
+  const oldImageToDelete = req?.user.avatar.avatarPublicId;
 
   if (!newAvatarlocalPath)
     throw new ApiError(400, "avatar image file is missing");
@@ -319,6 +321,7 @@ export const updateUserAvatar = asyncHandler(async (req, res) => {
 export const updateUserCoverImage = asyncHandler(async (req, res) => {
   // const user = req.user;
   const coverImageLocal = req.file?.path;
+  const { coverImagePublicId } = req?.user;
 
   if (!coverImageLocal) throw new ApiError(400, "cover image is missing");
 
@@ -336,6 +339,7 @@ export const updateUserCoverImage = asyncHandler(async (req, res) => {
     { new: true }
   ).select("-password");
 
+  await deleteImage(coverImagePublicId);
   return res
     .status(200)
     .json(new ApiResponse("coverImage successfully updated", 200, user));
