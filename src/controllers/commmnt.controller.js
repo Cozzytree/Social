@@ -3,6 +3,7 @@ import { Comment } from "../models/comment.model.js";
 import ApiError from "../utils/apiError.js";
 import ApiResponse from "../utils/apiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { Like } from "../models/like.model.js";
 
 const getVideoComments = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
@@ -60,6 +61,21 @@ const addComment = asyncHandler(async (req, res) => {
   return res.status(200).json(new ApiResponse("We got the data", 200, data));
 });
 
+const addCommentTweet = asyncHandler(async (req, res) => {
+  const { _id } = req.user;
+  if (!_id) {
+    throw new ApiError(401, "unauthorized request");
+  }
+
+  const { tweetId } = req.params;
+  const data = await Comment.create({ tweet: tweetId, owner: _id });
+  if (!data) throw new ApiError(501, "error while tweeting");
+
+  return res
+    .status(200)
+    .json(new ApiResponse("successfully tweeted", 201, data));
+});
+
 const updateComment = asyncHandler(async (req, res) => {
   const { _id } = req.user;
   if (!_id) throw new ApiError(401, "unauthorized request");
@@ -86,10 +102,16 @@ const deleteComment = asyncHandler(async (req, res) => {
   const { commentId } = req.params;
   if (!commentId) throw new ApiError(401, "invalid Id");
 
-  const data = await Comment.findOneAndDelete(commentId);
+  const data = await Comment.findOneAndDelete({ _id: commentId });
   if (!data) throw new ApiError(501, "error while deleting");
 
   return res.status(200).json(new ApiResponse("successfully deleted", 200, {}));
 });
 
-export { getVideoComments, addComment, updateComment, deleteComment };
+export {
+  getVideoComments,
+  addComment,
+  updateComment,
+  deleteComment,
+  addCommentTweet,
+};

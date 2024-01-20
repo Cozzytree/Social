@@ -7,6 +7,10 @@ const commentsSchema = new Schema(
       type: String,
       required: true,
     },
+    tweet: {
+      type: Schema.Types.ObjectId,
+      ref: "Tweet",
+    },
     video: {
       type: Schema.Types.ObjectId,
       ref: "Video",
