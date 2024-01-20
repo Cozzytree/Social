@@ -73,7 +73,9 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
   }
 
   if (!data) throw new ApiError(401, "unknown");
-  return res.status(200).json(new ApiResponse(`done`, 200, data));
+  return res
+    .status(200)
+    .json(new ApiResponse(`Success liked/Unliked`, 200, data));
 });
 
 const getLikedVideos = asyncHandler(async (req, res) => {

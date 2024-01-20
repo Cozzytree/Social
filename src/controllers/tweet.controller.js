@@ -55,6 +55,8 @@ export const editTweet = asyncHandler(async (req, res) => {
 
 //* Get all tweets
 export const getAllTweet = asyncHandler(async (req, res) => {
+  const { _id } = req?.user || "";
+  console.log(_id);
   const allTweets = await Tweet.aggregate([
     {
       $lookup: {
@@ -65,6 +67,19 @@ export const getAllTweet = asyncHandler(async (req, res) => {
       },
     },
     {
+      $lookup: {
+        from: "likes",
+        localField: "_id",
+        foreignField: "tweet",
+        as: "totalLikes",
+      },
+    },
+    {
+      $addFields: {
+        totalLikesCount: { $size: "$totalLikes" },
+      },
+    },
+    {
       $unwind: "$ownerInfo",
     },
     {
@@ -72,7 +87,15 @@ export const getAllTweet = asyncHandler(async (req, res) => {
         createdAt: 1,
         updatedAt: 1,
         content: 1,
+        isLiked: {
+          $cond: {
+            if: { $in: [_id, "$totalLikes.likedBy"] },
+            then: true,
+            else: false,
+          },
+        },
         tweets: 1,
+        totalLikesCount: 1,
         ownerInfo: {
           _id: 1,
           username: 1,
