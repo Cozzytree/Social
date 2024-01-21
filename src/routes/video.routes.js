@@ -2,7 +2,9 @@ import { Router } from "express";
 import { verifyJwt } from "../middleware/auth.middleware.js";
 import {
   deleteVideo,
+  getAVideo,
   getAllVideos,
+  getUserVideo,
   updateThumbnail,
   updateTitle,
   uploadVideo,
@@ -26,5 +28,7 @@ router.route("/e_title/:videoId").patch(verifyJwt, updateTitle);
 router
   .route("/e_thumbnail/:videoId")
   .patch(verifyJwt, upload.single("thumbnail"), updateThumbnail);
+router.route("/user_v").get(verifyJwt, getUserVideo);
+router.route("/:videoId").get(getAVideo);
 
 export default router;

@@ -4,6 +4,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import ApiResponse from "../utils/apiResponse.js";
 import ApiError from "../utils/apiError.js";
 import { deleteImage } from "../utils/cloudinaryDelete.js";
+import mongoose from "mongoose";
 
 export const uploadVideo = asyncHandler(async (req, res) => {
   //* Video file path
@@ -200,4 +201,22 @@ export const updateThumbnail = asyncHandler(async (req, res) => {
   return res
     .status(200)
     .json(new ApiResponse("thumbnail udated successfully", 200, data));
+});
+
+export const getUserVideo = asyncHandler(async (req, res) => {
+  const { _id } = req.user;
+  if (!_id) throw new ApiError(401, "unauthorized request");
+  const data = await Video.find({ owner: new mongoose.Types.ObjectId(_id) });
+  if (!data) throw new ApiError(501, "erroe while retrieving video");
+  return res.status(200).json(new ApiResponse("success", 200, data));
+});
+
+export const getAVideo = asyncHandler(async (req, res) => {
+  const { videoId } = req.params;
+
+  const data = await Video.findById({ _id: videoId });
+  console.log(data);
+  if (!data) throw new ApiError(401, "invalid id");
+
+  return res.status(200).json(new ApiResponse("success", 200, data));
 });

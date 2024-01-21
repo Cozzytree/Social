@@ -55,8 +55,7 @@ export const editTweet = asyncHandler(async (req, res) => {
 
 //* Get all tweets
 export const getAllTweet = asyncHandler(async (req, res) => {
-  const { _id } = req?.user || "";
-  console.log(_id);
+  const _id = req.params || "";
   const allTweets = await Tweet.aggregate([
     {
       $lookup: {

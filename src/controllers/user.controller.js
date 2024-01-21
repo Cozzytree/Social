@@ -100,7 +100,6 @@ export const loginUser = asyncHandler(async (req, res) => {
   const { email, password, username } = req.body;
 
   //* Check if email or username is recieved
-  console.log(email);
   if (!email && !username) {
     throw new ApiError(401, "Username or email is required");
   }
@@ -128,8 +127,13 @@ export const loginUser = asyncHandler(async (req, res) => {
   );
 
   //* Response
-  const options = { httpOnly: true, secure: true };
-
+  const options = {
+    httpOnly: true,
+    secure: true,
+    sameSite: "None",
+    domain: "localhost",
+    path: "/",
+  };
   return res
     .status(200)
     .cookie("accessToken", accessToken, options)
@@ -373,7 +377,18 @@ export const getUserChannelProfile = asyncHandler(async (req, res) => {
       },
     },
     {
+      $lookup: {
+        from: "videos",
+        localField: "_id",
+        foreignField: "owner",
+        as: "videos",
+      },
+    },
+    {
       $addFields: {
+        totalVideos: {
+          $size: "$videos",
+        },
         subcribersCount: {
           $size: "$subscribers",
         },
@@ -393,6 +408,7 @@ export const getUserChannelProfile = asyncHandler(async (req, res) => {
             else: false,
           },
         },
+        totalVideos: 1,
         avatar: 1,
         coverImage: 1,
         subcribersCount: 1,
