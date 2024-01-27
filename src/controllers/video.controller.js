@@ -12,7 +12,6 @@ export const uploadVideo = asyncHandler(async (req, res) => {
   if (req.files?.videoFile) {
     video = req.files?.videoFile[0]?.path;
   }
-  console.log(req.files);
 
   if (req.files?.thumbnail) {
     thumbnail = req.files?.thumbnail[0]?.path;
@@ -65,7 +64,6 @@ export const deleteVideo = asyncHandler(async (req, res) => {
   const user = req.user;
 
   const videoData = await Video.findById(videoId);
-  console.log("video data", videoData);
 
   if (!user?._id.equals(videoData?.owner)) {
     throw new ApiError(401, "not the owner");
@@ -114,6 +112,7 @@ export const getAllVideos = asyncHandler(async (req, res) => {
         as: "user",
       },
     },
+    { $unwind: "$user" },
     {
       $lookup: {
         from: "likes",
@@ -161,12 +160,6 @@ export const getAllVideos = asyncHandler(async (req, res) => {
         ],
       },
     },
-    // {
-    //   $skip: (page - 1) * limit,
-    // },
-    // {
-    //   $limit: limit,
-    // },
   ]);
 
   return res.status(200).json(new ApiResponse("hehe", 200, data[0]));
@@ -215,7 +208,6 @@ export const getAVideo = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
 
   const data = await Video.findById({ _id: videoId });
-  console.log(data);
   if (!data) throw new ApiError(401, "invalid id");
 
   return res.status(200).json(new ApiResponse("success", 200, data));

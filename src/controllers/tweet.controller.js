@@ -1,3 +1,5 @@
+import mongoose from "mongoose";
+import { Like } from "../models/like.model.js";
 import { Tweet } from "../models/tweet.model.js";
 import ApiError from "../utils/apiError.js";
 import ApiResponse from "../utils/apiResponse.js";
@@ -28,6 +30,9 @@ export const deleteTweet = asyncHandler(async (req, res) => {
   if (!tweetId) throw new ApiError(401, "invalid id");
 
   const Deltweet = await Tweet.findOneAndDelete({ _id: tweetId });
+
+  await Like.deleteMany({ likedBy: _id });
+
   if (!Deltweet) throw new ApiError(501, "error  while deleting");
 
   return res.status(200).json(new ApiResponse("Successfully deleted", 200, {}));
@@ -55,7 +60,6 @@ export const editTweet = asyncHandler(async (req, res) => {
 
 //* Get all tweets
 export const getAllTweet = asyncHandler(async (req, res) => {
-  const _id = req.params || "";
   const allTweets = await Tweet.aggregate([
     {
       $lookup: {
@@ -88,11 +92,12 @@ export const getAllTweet = asyncHandler(async (req, res) => {
         content: 1,
         isLiked: {
           $cond: {
-            if: { $in: [_id, "$totalLikes.likedBy"] },
+            if: { $in: [req?.user?._id || "", "$totalLikes.likedBy"] },
             then: true,
             else: false,
           },
         },
+        totalLikes: 1,
         tweets: 1,
         totalLikesCount: 1,
         ownerInfo: {
@@ -103,10 +108,88 @@ export const getAllTweet = asyncHandler(async (req, res) => {
       },
     },
   ]);
-
   if (!allTweets) throw new ApiError(501, "was't able to get tweets");
 
   return res
     .status(200)
     .json(new ApiResponse("here you have it", 200, allTweets));
+});
+
+export const getUserTweet = asyncHandler(async (req, res) => {
+  const { page = 1, limit = 10 } = req.query;
+  const { userId } = req.params;
+  const data = await Tweet.aggregate([
+    {
+      $match: { owner: new mongoose.Types.ObjectId(userId) },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "user",
+      },
+    },
+    {
+      $lookup: {
+        from: "likes",
+        localField: "_id",
+        foreignField: "tweet",
+        as: "likes",
+      },
+    },
+    {
+      $addFields: {
+        totalLikes: {
+          $size: "$likes",
+        },
+      },
+    },
+    {
+      $unwind: "$user",
+    },
+    {
+      $project: {
+        totalLikes: 1,
+        content: 1,
+        isLiked: {
+          $cond: {
+            if: { $in: [req?.user?._id || "", "$likes.likedBy"] },
+            then: true,
+            else: false,
+          },
+        },
+        user: {
+          username: "$user.username",
+          avatar: "$user.avatar",
+          _id: "$user._id",
+        },
+      },
+    },
+    {
+      $facet: {
+        data: [
+          {
+            $skip: (page - 1) * limit,
+          },
+          {
+            $limit: limit,
+          },
+        ],
+        totalCount: [
+          {
+            $count: "totalCount",
+          },
+        ],
+      },
+    },
+  ]);
+
+  if (!data) {
+    throw new ApiError(501, "database error while retrieving data");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse("Here are the tweets", 200, data));
 });

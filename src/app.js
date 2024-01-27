@@ -7,9 +7,8 @@ app.use(
   cors({
     origin: "http://localhost:5173",
     credentials: true,
-    optionSuccessStatus: 200,
-    Headers: true,
-    exposedHeaders: "Set-Cookie",
+    optionsSuccessStatus: 201, // Corrected property name
+    exposedHeaders: "Set-Cookie", // Corrected property name
     methods: ["GET", "PUT", "POST", "DELETE", "OPTIONS"],
     allowedHeaders: [
       "Access-Control-Allow-Origin",
@@ -23,6 +22,12 @@ app.use(express.json({ limit: "15kb" }));
 app.use(express.urlencoded({ extended: true, limit: "15kb" }));
 app.use(express.static("public"));
 app.use(cookieParser());
+app.use((err, req, res, next) => {
+  res.locals.error = err;
+  const status = err.status || 500;
+  res.status(status);
+  res.render("error");
+});
 
 //*routes import
 
@@ -33,15 +38,6 @@ import videoRouter from "../src/routes/video.routes.js";
 import likeRouter from "../src/routes/like.routes.js";
 
 //*routes declaration
-const val = "dsadasdasd";
-app.get("/app", (req, res) => {
-  res.status(200).json({ name: "Cozzy" }).cookie("tellme", val, {
-    httpOnly: true,
-    domain: "localhost",
-    path: "/",
-    secure: true,
-  });
-});
 
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/comments", commentRouter);

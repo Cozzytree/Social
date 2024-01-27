@@ -143,4 +143,10 @@ const totalVideoLikes = asyncHandler(async (req, res) => {
   return res.status(200).json(new ApiResponse("success", 200, { data, _id }));
 });
 
-export { toggleCommentLike, toggleTweetLike, getLikedVideos, toggleVideoLike };
+export {
+  toggleCommentLike,
+  toggleTweetLike,
+  getLikedVideos,
+  toggleVideoLike,
+  totalVideoLikes,
+};

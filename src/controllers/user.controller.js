@@ -17,7 +17,7 @@ async function generate_AccessAnd_RefreshToken(id) {
 
     return { accessToken, refreshToken };
   } catch (err) {
-    throw new ApiError(500, "something went wrong while generating tokens");
+    throw new ApiError(501, "something went wrong while generating tokens");
   }
 }
 
@@ -25,19 +25,14 @@ async function generate_AccessAnd_RefreshToken(id) {
 export const registerUser = asyncHandler(async (req, res) => {
   // get data from user
   const { username, email, password, fullName } = req.body;
-
-  if (
-    [username, email, fullName, fullName].some(
-      (fields) => fields?.trim() === ""
-    )
-  ) {
-    throw new ApiError(400, "All fields are required");
+  if ([username, email, fullName].some((fields) => fields?.trim() === "")) {
+    throw new ApiError(401, "All fields are required");
   }
 
   //*check for existing user
   const existedUser = await User.findOne({ email });
   if (existedUser) {
-    throw new ApiError(409, "Username or email already exists");
+    throw new ApiError(401, "Username or email already exists");
   }
 
   //* check avatar Image
@@ -60,14 +55,14 @@ export const registerUser = asyncHandler(async (req, res) => {
   }
 
   if (!avatarPath) {
-    throw new ApiError(400, "Avatar is required");
+    throw new ApiError(401, "Avatar is required");
   }
 
   //*upload image
   const avatar = await uploadInCloudinary(avatarPath);
   const coverImage = await uploadInCloudinary(coverImagePath);
   if (!avatar) {
-    throw new ApiError(500, "error while uploading");
+    throw new ApiError(501, "error while uploading");
   }
 
   //*create userObject
@@ -88,11 +83,11 @@ export const registerUser = asyncHandler(async (req, res) => {
   );
 
   if (!createdUser)
-    throw new ApiError(500, "Something went wrong while creating user");
+    throw new ApiError(501, "Something went wrong while creating user");
 
   return res
-    .status(201)
-    .json(new ApiResponse("user successfully registered", 201, createdUser));
+    .status(200)
+    .json(new ApiResponse("user successfully registered", 200, createdUser));
 });
 
 //*..........................login user ........................
@@ -209,7 +204,6 @@ export const refreshAccessToken = asyncHandler(async (req, res) => {
 //*.........................Change Password ...........................
 export const changeCurrentPassword = asyncHandler(async (req, res) => {
   const { oldPassword, newPassword } = req.body;
-  console.log(req?.user);
   const user = await User.findById(req?.user._id);
 
   const checkOldPassword = await user.checkPassword(oldPassword);
@@ -228,6 +222,7 @@ export const changeCurrentPassword = asyncHandler(async (req, res) => {
 
 //*.........................get Current user ...........................
 export const getCurrentUser = asyncHandler(async (req, res) => {
+  if (!req.user) throw new ApiError(401, "unauthorized request");
   return res
     .status(200)
     .json(new ApiResponse("current user fetched succesfully", 200, req?.user));
@@ -236,7 +231,6 @@ export const getCurrentUser = asyncHandler(async (req, res) => {
 //*.........................update account details ...........................
 export const updateAccountDetails = asyncHandler(async (req, res) => {
   const { fullName, email } = req.body;
-  console.log(req?.user);
 
   if (!fullName && !email) {
     throw new ApiError(401, "required eamil or password to update");
@@ -351,7 +345,6 @@ export const updateUserCoverImage = asyncHandler(async (req, res) => {
 
 export const getUserChannelProfile = asyncHandler(async (req, res) => {
   const { username } = req?.params;
-  // console.log(username);
   if (!username) throw new ApiError(401, "couldn't find the user");
 
   const channel = await User.aggregate([
@@ -417,7 +410,6 @@ export const getUserChannelProfile = asyncHandler(async (req, res) => {
     },
   ]);
 
-  // console.log(channel);
   if (!channel) throw new ApiError(402, "channel dosen't exist");
 
   return res
@@ -426,8 +418,6 @@ export const getUserChannelProfile = asyncHandler(async (req, res) => {
 });
 
 export const getWatchHistory = asyncHandler(async (req, res) => {
-  console.log(req?.user);
-
   const wh = await User.aggregate([
     {
       $match: {
@@ -474,7 +464,7 @@ export const getWatchHistory = asyncHandler(async (req, res) => {
       },
     },
   ]);
-  console.log(wh);
+
   if (!wh) {
     throw new ApiError(401, "couldn't get history");
   }
