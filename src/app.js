@@ -7,9 +7,9 @@ app.use(
   cors({
     origin: "http://localhost:5173",
     credentials: true,
-    optionsSuccessStatus: 201, // Corrected property name
-    exposedHeaders: "Set-Cookie", // Corrected property name
-    methods: ["GET", "PUT", "POST", "DELETE", "OPTIONS"],
+    optionsSuccessStatus: 201,
+    exposedHeaders: "Set-Cookie",
+    methods: ["GET", "PUT", "POST", "DELETE", "OPTIONS", "PATCH"],
     allowedHeaders: [
       "Access-Control-Allow-Origin",
       "Content-Type",
@@ -36,6 +36,7 @@ import commentRouter from "../src/routes/comment.routes.js";
 import tweetRouter from "../src/routes/tweet.routes.js";
 import videoRouter from "../src/routes/video.routes.js";
 import likeRouter from "../src/routes/like.routes.js";
+import subscribe from "../src/routes/subscription.routes.js";
 
 //*routes declaration
 
@@ -44,5 +45,6 @@ app.use("/api/v1/comments", commentRouter);
 app.use("/api/v1/tweet", tweetRouter);
 app.use("/api/v1/videos", videoRouter);
 app.use("/api/v1/like", likeRouter);
+app.use("/api/v1/subscribe", subscribe);
 
 export default app;

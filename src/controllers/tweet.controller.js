@@ -31,7 +31,7 @@ export const deleteTweet = asyncHandler(async (req, res) => {
 
   const Deltweet = await Tweet.findOneAndDelete({ _id: tweetId });
 
-  await Like.deleteMany({ likedBy: _id });
+  await Like.deleteMany({ likedBy: _id, _id: tweetId });
 
   if (!Deltweet) throw new ApiError(501, "error  while deleting");
 
@@ -140,7 +140,7 @@ export const getUserTweet = asyncHandler(async (req, res) => {
     },
     {
       $addFields: {
-        totalLikes: {
+        totalLikesCount: {
           $size: "$likes",
         },
       },
@@ -150,7 +150,7 @@ export const getUserTweet = asyncHandler(async (req, res) => {
     },
     {
       $project: {
-        totalLikes: 1,
+        totalLikesCount: 1,
         content: 1,
         isLiked: {
           $cond: {
@@ -159,7 +159,7 @@ export const getUserTweet = asyncHandler(async (req, res) => {
             else: false,
           },
         },
-        user: {
+        ownerInfo: {
           username: "$user.username",
           avatar: "$user.avatar",
           _id: "$user._id",

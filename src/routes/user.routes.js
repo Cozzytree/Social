@@ -38,7 +38,7 @@ router.route("/refreshToken").post(refreshAccessToken);
 
 router.route("/update_userdetails").patch(verifyJwt, updateAccountDetails);
 
-router.route("/:username").get(verifyJwt, getUserChannelProfile);
+router.route("/:userId").get(verifyJwt, getUserChannelProfile);
 
 router
   .route("/update_avatar")

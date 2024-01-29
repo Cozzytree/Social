@@ -225,7 +225,7 @@ export const getCurrentUser = asyncHandler(async (req, res) => {
   if (!req.user) throw new ApiError(401, "unauthorized request");
   return res
     .status(200)
-    .json(new ApiResponse("current user fetched succesfully", 200, req?.user));
+    .json(new ApiResponse("current user fetched succesfully", 200, req.user));
 });
 
 //*.........................update account details ...........................
@@ -344,13 +344,13 @@ export const updateUserCoverImage = asyncHandler(async (req, res) => {
 });
 
 export const getUserChannelProfile = asyncHandler(async (req, res) => {
-  const { username } = req?.params;
-  if (!username) throw new ApiError(401, "couldn't find the user");
+  const { userId } = req?.params;
+  if (!userId) throw new ApiError(401, "couldn't find the user");
 
   const channel = await User.aggregate([
     {
       $match: {
-        username: username?.toLowerCase(),
+        _id: new mongoose.Types.ObjectId(userId),
       },
     },
     {

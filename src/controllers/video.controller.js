@@ -198,8 +198,11 @@ export const updateThumbnail = asyncHandler(async (req, res) => {
 
 export const getUserVideo = asyncHandler(async (req, res) => {
   const { _id } = req.user;
+  const { userId } = req.params;
+
   if (!_id) throw new ApiError(401, "unauthorized request");
-  const data = await Video.find({ owner: new mongoose.Types.ObjectId(_id) });
+
+  const data = await Video.find({ owner: new mongoose.Types.ObjectId(userId) });
   if (!data) throw new ApiError(501, "erroe while retrieving video");
   return res.status(200).json(new ApiResponse("success", 200, data));
 });
