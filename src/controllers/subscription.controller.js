@@ -18,13 +18,12 @@ export const updateSubscribe = asyncHandler(async (req, res) => {
       channel: channelId,
     });
   }
-  if (!ifAlreadySub) {
+  if (ifAlreadySub.length === 0) {
     data = await Subscription.create({
       subscriber: _id,
-      channelId: channelId,
+      channel: channelId,
     });
   }
-  console.log(data);
   if (!data) throw new ApiError(501, "server error");
 
   return res.status(200).json(new ApiResponse("success", 200, data));

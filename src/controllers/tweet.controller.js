@@ -139,19 +139,18 @@ export const getUserTweet = asyncHandler(async (req, res) => {
       },
     },
     {
-      $addFields: {
-        totalLikesCount: {
-          $size: "$likes",
-        },
-      },
-    },
-    {
       $unwind: "$user",
     },
     {
+      $addFields: {
+        totalLikesCount: { $size: "$likes" },
+      },
+    },
+    {
       $project: {
-        totalLikesCount: 1,
+        _id: 1,
         content: 1,
+        totalLikesCount: 1,
         isLiked: {
           $cond: {
             if: { $in: [req?.user?._id || "", "$likes.likedBy"] },
@@ -168,19 +167,17 @@ export const getUserTweet = asyncHandler(async (req, res) => {
     },
     {
       $facet: {
-        data: [
-          {
-            $skip: (page - 1) * limit,
-          },
-          {
-            $limit: limit,
-          },
-        ],
-        totalCount: [
-          {
-            $count: "totalCount",
-          },
-        ],
+        data: [{ $skip: (page - 1) * limit }, { $limit: limit }],
+        totalCount: [{ $count: "totalCount" }],
+      },
+    },
+    {
+      $unwind: "$totalCount",
+    },
+    {
+      $project: {
+        data: 1,
+        totalCount: "$totalCount.totalCount",
       },
     },
   ]);

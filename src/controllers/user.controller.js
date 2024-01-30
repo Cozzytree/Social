@@ -346,7 +346,7 @@ export const updateUserCoverImage = asyncHandler(async (req, res) => {
 export const getUserChannelProfile = asyncHandler(async (req, res) => {
   const { userId } = req?.params;
   if (!userId) throw new ApiError(401, "couldn't find the user");
-
+  // 65b8acb061259827f9fc3673
   const channel = await User.aggregate([
     {
       $match: {
