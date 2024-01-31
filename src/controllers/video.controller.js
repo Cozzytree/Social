@@ -8,6 +8,8 @@ import mongoose from "mongoose";
 
 export const uploadVideo = asyncHandler(async (req, res) => {
   //* Video file path
+  console.log("req", req.files);
+  const { title, description } = req.body;
   let video, thumbnail;
   if (req.files?.videoFile) {
     video = req.files?.videoFile[0]?.path;
@@ -45,9 +47,13 @@ export const uploadVideo = asyncHandler(async (req, res) => {
 
   //* create new document
   const data = await Video.create({
-    videoFile: videoUrl,
-    title: "Owl City - Real world",
-    thumbnail: thumbnailUrl,
+    videoFile: videoUrl?.secure_url,
+    videoPublicId: videoUrl?.public_id,
+    thumbnailPublicId: thumbnailUrl?.public_id,
+    title: title,
+    duration: videoUrl?.duration,
+    description: description || "",
+    thumbnail: thumbnailUrl?.secure_url,
     owner: _id,
   });
 
@@ -61,6 +67,7 @@ export const uploadVideo = asyncHandler(async (req, res) => {
 
 export const deleteVideo = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
+
   const user = req.user;
 
   const videoData = await Video.findById(videoId);
@@ -74,12 +81,9 @@ export const deleteVideo = asyncHandler(async (req, res) => {
 
   const deleteVideo = await Video.findByIdAndDelete(videoId);
 
-  return res.status(200).json(
-    new ApiResponse("successfully deleted", 200, {
-      deletedVideoId: deleteVideo?._id,
-      title: deleteVideo?.title,
-    })
-  );
+  return res
+    .status(200)
+    .json(new ApiResponse("successfully deleted", 200, deleteVideo));
 });
 
 export const updateTitle = asyncHandler(async (req, res) => {

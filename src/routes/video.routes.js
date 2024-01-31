@@ -10,6 +10,7 @@ import {
   uploadVideo,
 } from "../controllers/video.controller.js";
 import { upload } from "../middleware/multer.middleware.js";
+import { checkVideoSize } from "../middleware/videoSize.middleware.js";
 
 const router = Router();
 

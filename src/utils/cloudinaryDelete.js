@@ -10,16 +10,12 @@ cloudinary.config({
   secure: true,
 });
 
-export const deleteImage = async (filepath) => {
+export const deleteImage = async (publicId) => {
   try {
-    if (!filepath) return;
-    await cloudinary.uploader.destroy(
-      filepath,
-      { resource_type: "any" },
-      function (result) {
-        return result;
-      }
-    );
+    if (!publicId) return;
+    await cloudinary.uploader.destroy(publicId, function (result) {
+      return result;
+    });
   } catch (error) {
     throw error;
   }

@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import fs from "fs";
 
 const app = express();
 app.use(
@@ -22,11 +23,22 @@ app.use(express.json({ limit: "15kb" }));
 app.use(express.urlencoded({ extended: true, limit: "15kb" }));
 app.use(express.static("public"));
 app.use(cookieParser());
+app.use((req, _, next) => {
+  fs.appendFile(
+    "log.txt",
+    `\n${Date.now()} : ${req.ip} : ${req.method} : ${req.path}`,
+    () => {
+      next();
+    }
+  );
+});
+
 app.use((err, req, res, next) => {
   res.locals.error = err;
   const status = err.status || 500;
   res.status(status);
   res.render("error");
+  next();
 });
 
 //*routes import

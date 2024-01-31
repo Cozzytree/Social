@@ -15,10 +15,9 @@ export async function uploadInCloudinary(localFilepath) {
 
     const response = await cloudinary.uploader.upload(localFilepath, {
       resource_type: "auto",
+      media_metadata: true,
     });
-
     fs.unlinkSync(localFilepath);
-
     return response;
   } catch (error) {
     fs.unlinkSync(localFilepath);

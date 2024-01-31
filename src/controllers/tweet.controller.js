@@ -163,6 +163,8 @@ export const getUserTweet = asyncHandler(async (req, res) => {
           avatar: "$user.avatar",
           _id: "$user._id",
         },
+        createdAt: 1,
+        updatedAt: 1,
       },
     },
     {

@@ -223,6 +223,7 @@ export const changeCurrentPassword = asyncHandler(async (req, res) => {
 //*.........................get Current user ...........................
 export const getCurrentUser = asyncHandler(async (req, res) => {
   if (!req.user) throw new ApiError(401, "unauthorized request");
+
   return res
     .status(200)
     .json(new ApiResponse("current user fetched succesfully", 200, req.user));
