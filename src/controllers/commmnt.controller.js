@@ -8,7 +8,6 @@ import { Like } from "../models/like.model.js";
 const getVideoComments = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
   const { page = 1, limit = 10 } = req.query;
-
   const data = await Comment.aggregate([
     {
       $match: {
@@ -23,6 +22,7 @@ const getVideoComments = asyncHandler(async (req, res) => {
         as: "user",
       },
     },
+    { $unwind: "$user" },
     {
       $project: {
         username: 1,
@@ -33,10 +33,10 @@ const getVideoComments = asyncHandler(async (req, res) => {
       },
     },
     {
-      $skip: page - 1,
+      $skip: +page - 1,
     },
     {
-      $limit: parseInt(limit),
+      $limit: +limit,
     },
   ]);
   if (!data) throw new ApiError(401, "error loading comments");

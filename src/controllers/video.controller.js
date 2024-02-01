@@ -214,8 +214,46 @@ export const getUserVideo = asyncHandler(async (req, res) => {
 export const getAVideo = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
 
-  const data = await Video.findById({ _id: videoId });
+  const data = await Video.aggregate([
+    {
+      $match: {
+        _id: new mongoose.Types.ObjectId(videoId),
+      },
+    },
+    {
+      $lookup: {
+        from: "comments",
+        foreignField: "video",
+        localField: "_id",
+        as: "videoComments",
+      },
+    },
+    {
+      $addFields: {
+        totalComments: {
+          $size: "$videoComments",
+        },
+      },
+    },
+    {
+      $project: {
+        _id: 1,
+        createdAt: 1,
+        owner: 1,
+        thumbnail: 1,
+        thumbnailPublicId: 1,
+        title: 1,
+        updatedAt: 1,
+        videoFile: 1,
+        videoPublicId: 1,
+        views: 1,
+        totalComments: 1,
+      },
+    },
+  ]);
+
+  // const data = await Video.findById({ _id: videoId });
   if (!data) throw new ApiError(401, "invalid id");
 
-  return res.status(200).json(new ApiResponse("success", 200, data));
+  return res.status(200).json(new ApiResponse("success", 200, data[0]));
 });
