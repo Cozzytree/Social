@@ -7,10 +7,10 @@ import {
   getUserVideo,
   updateThumbnail,
   updateTitle,
+  updateView,
   uploadVideo,
 } from "../controllers/video.controller.js";
 import { upload } from "../middleware/multer.middleware.js";
-import { checkVideoSize } from "../middleware/videoSize.middleware.js";
 
 const router = Router();
 
@@ -30,6 +30,7 @@ router
   .route("/e_thumbnail/:videoId")
   .patch(verifyJwt, upload.single("thumbnail"), updateThumbnail);
 router.route("/user_v/:userId").get(mildJwt, getUserVideo);
-router.route("/:videoId").get(getAVideo);
+router.route("/:videoId").get(mildJwt, getAVideo);
+router.route("/addView/:videoId").patch(updateView);
 
 export default router;

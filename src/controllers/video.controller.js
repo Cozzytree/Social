@@ -8,7 +8,7 @@ import mongoose from "mongoose";
 
 export const uploadVideo = asyncHandler(async (req, res) => {
   //* Video file path
-  console.log("req", req.files);
+
   const { title, description } = req.body;
   let video, thumbnail;
   if (req.files?.videoFile) {
@@ -229,9 +229,20 @@ export const getAVideo = asyncHandler(async (req, res) => {
       },
     },
     {
+      $lookup: {
+        from: "likes",
+        foreignField: "video",
+        localField: "_id",
+        as: "videoLikes",
+      },
+    },
+    {
       $addFields: {
         totalComments: {
           $size: "$videoComments",
+        },
+        totalLikes: {
+          $size: "$videoLikes",
         },
       },
     },
@@ -239,15 +250,24 @@ export const getAVideo = asyncHandler(async (req, res) => {
       $project: {
         _id: 1,
         createdAt: 1,
+        isLiked: {
+          $cond: {
+            if: { $in: [req?.user?._id || "", "$videoLikes.likedBy"] },
+            then: true,
+            else: false,
+          },
+        },
         owner: 1,
         thumbnail: 1,
         thumbnailPublicId: 1,
         title: 1,
+        duration: 1,
         updatedAt: 1,
         videoFile: 1,
         videoPublicId: 1,
         views: 1,
         totalComments: 1,
+        totalLikes: 1,
       },
     },
   ]);
@@ -256,4 +276,15 @@ export const getAVideo = asyncHandler(async (req, res) => {
   if (!data) throw new ApiError(401, "invalid id");
 
   return res.status(200).json(new ApiResponse("success", 200, data[0]));
+});
+
+export const updateView = asyncHandler(async (req, res) => {
+  const { videoId } = req.params;
+
+  const data = await Video.findByIdAndUpdate(
+    videoId,
+    { $inc: { views: 1 } },
+    { new: true }
+  );
+  return res.status(200).json(new ApiResponse("viewed", 200, data));
 });

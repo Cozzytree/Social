@@ -25,6 +25,8 @@ const getVideoComments = asyncHandler(async (req, res) => {
     { $unwind: "$user" },
     {
       $project: {
+        createdAt: 1,
+        updatedAt: 1,
         username: 1,
         content: 1,
         "user.username": 1,

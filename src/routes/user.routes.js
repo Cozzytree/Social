@@ -11,9 +11,10 @@ import {
   updateUserAvatar,
   updateUserCoverImage,
   getCurrentUser,
+  updateWatchHistory,
 } from "../controllers/user.controller.js";
 import { upload } from "../middleware/multer.middleware.js";
-import { verifyJwt } from "../middleware/auth.middleware.js";
+import { mildJwt, verifyJwt } from "../middleware/auth.middleware.js";
 
 const router = Router();
 
@@ -49,5 +50,6 @@ router
   .patch(verifyJwt, upload.single("coverImage"), updateUserCoverImage);
 
 router.route("/watch_history").get(verifyJwt, getWatchHistory);
+router.route("/wh/:videoId").patch(mildJwt, updateWatchHistory);
 
 export default router;

@@ -472,3 +472,17 @@ export const getWatchHistory = asyncHandler(async (req, res) => {
 
   return res.status(200).json(new ApiResponse("sucess", 200, wh));
 });
+
+export const updateWatchHistory = asyncHandler(async (req, res) => {
+  const { _id } = req.user;
+  const { videoId } = req.params;
+  if (!_id) return res.status(200);
+
+  await User.findByIdAndUpdate(_id, {
+    $set: {
+      watchHistory: videoId,
+    },
+  });
+
+  return res.status(200);
+});

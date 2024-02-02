@@ -46,7 +46,6 @@ export const mildJwt = asyncHandler(async (req, _, next) => {
     } else {
       user = "";
     }
-
     req.user = user;
     next();
   } catch (error) {
