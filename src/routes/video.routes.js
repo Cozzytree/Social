@@ -6,7 +6,7 @@ import {
   getAllVideos,
   getUserVideo,
   updateThumbnail,
-  updateTitle,
+  updateVideoTandD,
   updateView,
   uploadVideo,
 } from "../controllers/video.controller.js";
@@ -25,7 +25,7 @@ router.route("/upload").post(
 
 router.route("/").get(getAllVideos);
 router.route("/d/:videoId").delete(verifyJwt, deleteVideo);
-router.route("/e_title/:videoId").patch(verifyJwt, updateTitle);
+router.route("/e_title/:videoId").patch(verifyJwt, updateVideoTandD);
 router
   .route("/e_thumbnail/:videoId")
   .patch(verifyJwt, upload.single("thumbnail"), updateThumbnail);

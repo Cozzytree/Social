@@ -49,6 +49,7 @@ import tweetRouter from "../src/routes/tweet.routes.js";
 import videoRouter from "../src/routes/video.routes.js";
 import likeRouter from "../src/routes/like.routes.js";
 import subscribe from "../src/routes/subscription.routes.js";
+import playlist from "../src/routes/playlist.routes.js";
 
 //*routes declaration
 
@@ -58,5 +59,8 @@ app.use("/api/v1/tweet", tweetRouter);
 app.use("/api/v1/videos", videoRouter);
 app.use("/api/v1/like", likeRouter);
 app.use("/api/v1/subscribe", subscribe);
+app.use("/api/v1/playlist", playlist);
 
 export default app;
+
+// nodemailer at the end

@@ -18,7 +18,7 @@ export const postTweet = asyncHandler(async (req, res) => {
   if (!data) throw new ApiError(401, "db error while uploading");
   return res
     .status(200)
-    .json(new ApiResponse("sussecfully twetted", 200, data));
+    .json(new ApiResponse("sussecfully twetted", 201, data));
 });
 
 //*DELETE TWEET
@@ -27,15 +27,15 @@ export const deleteTweet = asyncHandler(async (req, res) => {
   if (!_id) throw new ApiError(401, "unauthorized request");
 
   const { tweetId } = req.params;
-  if (!tweetId) throw new ApiError(401, "invalid id");
+  if (!tweetId) throw new ApiError(404, "invalid id");
 
   const Deltweet = await Tweet.findOneAndDelete({ _id: tweetId });
 
   await Like.deleteMany({ likedBy: _id, _id: tweetId });
 
-  if (!Deltweet) throw new ApiError(501, "error  while deleting");
+  if (!Deltweet) throw new ApiError(404, "error  while deleting");
 
-  return res.status(200).json(new ApiResponse("Successfully deleted", 200, {}));
+  return res.status(200).json(new ApiResponse("Successfully deleted", 204, {}));
 });
 
 //*Edit Tweet
@@ -55,7 +55,7 @@ export const editTweet = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .json(new ApiResponse("successfully updated", 200, newContent));
+    .json(new ApiResponse("successfully updated", 201, newContent));
 });
 
 //* Get all tweets
@@ -78,8 +78,18 @@ export const getAllTweet = asyncHandler(async (req, res) => {
       },
     },
     {
+      $lookup: {
+        from: "comments",
+        localField: "_id",
+        foreignField: "tweet",
+        as: "totalComments",
+      },
+    },
+
+    {
       $addFields: {
         totalLikesCount: { $size: "$totalLikes" },
+        totalCommentsCount: { $size: "$totalComments" },
       },
     },
     {
@@ -97,9 +107,9 @@ export const getAllTweet = asyncHandler(async (req, res) => {
             else: false,
           },
         },
-        totalLikes: 1,
         tweets: 1,
         totalLikesCount: 1,
+        totalCommentsCount: 1,
         ownerInfo: {
           _id: 1,
           username: 1,
@@ -108,7 +118,7 @@ export const getAllTweet = asyncHandler(async (req, res) => {
       },
     },
   ]);
-  if (!allTweets) throw new ApiError(501, "was't able to get tweets");
+  if (!allTweets) throw new ApiError(404, "was't able to get tweets");
 
   return res
     .status(200)
@@ -185,7 +195,7 @@ export const getUserTweet = asyncHandler(async (req, res) => {
   ]);
 
   if (!data) {
-    throw new ApiError(501, "database error while retrieving data");
+    throw new ApiError(404, "database error while retrieving data");
   }
 
   return res

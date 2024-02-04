@@ -346,8 +346,7 @@ export const updateUserCoverImage = asyncHandler(async (req, res) => {
 
 export const getUserChannelProfile = asyncHandler(async (req, res) => {
   const { userId } = req?.params;
-  if (!userId) throw new ApiError(401, "couldn't find the user");
-  // 65b8acb061259827f9fc3673
+  // if (!userId) throw new ApiError(401, "couldn't find the user");
   const channel = await User.aggregate([
     {
       $match: {
@@ -419,10 +418,12 @@ export const getUserChannelProfile = asyncHandler(async (req, res) => {
 });
 
 export const getWatchHistory = asyncHandler(async (req, res) => {
+  const { _id } = req.user;
+
   const wh = await User.aggregate([
     {
       $match: {
-        _id: new mongoose.Types.ObjectId(req?.user._id),
+        _id: new mongoose.Types.ObjectId(_id),
       },
     },
     {
@@ -458,6 +459,7 @@ export const getWatchHistory = asyncHandler(async (req, res) => {
         ],
       },
     },
+    { $unwind: "$watch_history" },
     {
       $project: {
         watch_history: 1,
@@ -470,7 +472,9 @@ export const getWatchHistory = asyncHandler(async (req, res) => {
     throw new ApiError(401, "couldn't get history");
   }
 
-  return res.status(200).json(new ApiResponse("sucess", 200, wh));
+  return res
+    .status(200)
+    .json(new ApiResponse("here is you watch history", 200, wh));
 });
 
 export const updateWatchHistory = asyncHandler(async (req, res) => {
@@ -479,7 +483,7 @@ export const updateWatchHistory = asyncHandler(async (req, res) => {
   if (!_id) return res.status(200);
 
   await User.findByIdAndUpdate(_id, {
-    $set: {
+    $push: {
       watchHistory: videoId,
     },
   });

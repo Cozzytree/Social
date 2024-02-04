@@ -42,7 +42,7 @@ export const uploadVideo = asyncHandler(async (req, res) => {
     throw new ApiError(401, "tumbnail is required");
   }
   if (!videoUrl) {
-    throw new ApiError(501, "Wasn't able to upload something went wrong");
+    throw new ApiError(404, "something went wrong");
   }
 
   //* create new document
@@ -58,11 +58,11 @@ export const uploadVideo = asyncHandler(async (req, res) => {
   });
 
   //* check if document is created
-  if (!data) throw new ApiError(501, "Error while uploading");
+  if (!data) throw new ApiError(404, "video not found");
 
   return res
     .status(200)
-    .json(new ApiResponse("succesfully uploaded", 200, data));
+    .json(new ApiResponse("succesfully uploaded", 201, data));
 });
 
 export const deleteVideo = asyncHandler(async (req, res) => {
@@ -86,21 +86,21 @@ export const deleteVideo = asyncHandler(async (req, res) => {
     .json(new ApiResponse("successfully deleted", 200, deleteVideo));
 });
 
-export const updateTitle = asyncHandler(async (req, res) => {
+export const updateVideoTandD = asyncHandler(async (req, res) => {
   const { username } = req.user;
-  if (!username) throw new ApiError(401, "You are unauthorized to do so");
+  if (!username) throw new ApiError(401, "You are unauthorized");
 
   const { videoId } = req.params;
 
   const data = await Video.findByIdAndUpdate(
     videoId,
     {
-      $set: { title: res.body },
+      $set: req.body,
     },
     { new: true }
   );
 
-  if (!data) throw new ApiError(501, "error while updating");
+  if (!data) throw new ApiError(404, "not found");
 
   return res.json(new ApiResponse("updated successfully", 200, data));
 });
@@ -151,10 +151,10 @@ export const getAllVideos = asyncHandler(async (req, res) => {
       $facet: {
         data: [
           {
-            $skip: (page - 1) * limit,
+            $skip: +(page - 1) * limit,
           },
           {
-            $limit: limit,
+            $limit: +limit,
           },
         ],
         totalCount: [
@@ -172,7 +172,6 @@ export const getAllVideos = asyncHandler(async (req, res) => {
 export const updateThumbnail = asyncHandler(async (req, res) => {
   const { username } = req.user;
   const { videoId } = req.params;
-
   if (!username) {
     throw new ApiError(401, "you are not authorized");
   }
@@ -182,13 +181,13 @@ export const updateThumbnail = asyncHandler(async (req, res) => {
   const localThumbnailPath = req.file?.path;
   const newThumbnailUrl = await uploadInCloudinary(localThumbnailPath);
   if (!newThumbnailUrl) {
-    throw new ApiError(501, "error while uploading");
+    throw new ApiError(404, "couldn't find the uploaded file");
   }
 
   const data = await Video.findByIdAndUpdate(
     videoId,
     {
-      $set: { thumbnail: newThumbnailUrl },
+      $set: { thumbnail: newThumbnailUrl?.secure_url },
     },
     { new: true }
   );
@@ -197,17 +196,17 @@ export const updateThumbnail = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .json(new ApiResponse("thumbnail udated successfully", 200, data));
+    .json(new ApiResponse("thumbnail udated successfully", 201, data));
 });
 
 export const getUserVideo = asyncHandler(async (req, res) => {
-  const { _id } = req.user;
+  // const { _id } = req.user;
   const { userId } = req.params;
 
-  if (!_id) throw new ApiError(401, "unauthorized request");
+  // if (!_id) throw new ApiError(401, "unauthorized request");
 
   const data = await Video.find({ owner: new mongoose.Types.ObjectId(userId) });
-  if (!data) throw new ApiError(501, "erroe while retrieving video");
+  if (!data) throw new ApiError(404, "not found");
   return res.status(200).json(new ApiResponse("success", 200, data));
 });
 
@@ -261,6 +260,7 @@ export const getAVideo = asyncHandler(async (req, res) => {
         thumbnail: 1,
         thumbnailPublicId: 1,
         title: 1,
+        description: 1,
         duration: 1,
         updatedAt: 1,
         videoFile: 1,

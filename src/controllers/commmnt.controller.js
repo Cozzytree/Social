@@ -3,7 +3,6 @@ import { Comment } from "../models/comment.model.js";
 import ApiError from "../utils/apiError.js";
 import ApiResponse from "../utils/apiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { Like } from "../models/like.model.js";
 
 const getVideoComments = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
@@ -63,21 +62,6 @@ const addComment = asyncHandler(async (req, res) => {
   return res.status(200).json(new ApiResponse("We got the data", 200, data));
 });
 
-const addCommentTweet = asyncHandler(async (req, res) => {
-  const { _id } = req.user;
-  if (!_id) {
-    throw new ApiError(401, "unauthorized request");
-  }
-
-  const { tweetId } = req.params;
-  const data = await Comment.create({ tweet: tweetId, owner: _id });
-  if (!data) throw new ApiError(501, "error while tweeting");
-
-  return res
-    .status(200)
-    .json(new ApiResponse("successfully tweeted", 201, data));
-});
-
 const updateComment = asyncHandler(async (req, res) => {
   const { _id } = req.user;
   if (!_id) throw new ApiError(401, "unauthorized request");
@@ -110,10 +94,98 @@ const deleteComment = asyncHandler(async (req, res) => {
   return res.status(200).json(new ApiResponse("successfully deleted", 200, {}));
 });
 
+//* tweets comments
+const getTweetComments = asyncHandler(async (req, res) => {
+  const { tweetId } = req.params;
+  const { page = 1, limit = 10 } = req.query;
+
+  const data = await Comment.aggregate([
+    {
+      $match: {
+        tweet: new mongoose.Types.ObjectId(tweetId),
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "user",
+      },
+    },
+    { $unwind: "$user" },
+    {
+      $project: {
+        createdAt: 1,
+        updatedAt: 1,
+        username: 1,
+        content: 1,
+        "user.username": 1,
+        "user._id": 1,
+        "user.avatar": 1,
+      },
+    },
+    {
+      $skip: +page - 1,
+    },
+    {
+      $limit: +limit,
+    },
+  ]);
+  return res
+    .status(200)
+    .json(new ApiResponse("successfully fetched", 200, data));
+});
+
+const addTweetComment = asyncHandler(async (req, res) => {
+  const { tweetId } = req.params;
+  const { content } = req.body;
+  const { _id } = req.user;
+
+  if (!_id) throw new ApiError(401, "unauthorized request");
+  const data = await Comment.create({
+    tweet: tweetId,
+    content,
+    owner: _id,
+  });
+
+  if (!data) throw new ApiError(501, "server error");
+  return res
+    .status(200)
+    .json(new ApiResponse("successfully tweeted", 200, data));
+});
+
+const deleteTweetComment = asyncHandler(async (req, res) => {
+  const { commentId } = req.params;
+  if (!req.user._id) throw new ApiError(401, "unverified user");
+
+  await Comment.findByIdAndDelete(commentId);
+
+  return res.status(200).json(new ApiResponse("successfully deleted", 200, {}));
+});
+
+const updateTweetComment = asyncHandler(async (req, res) => {
+  const { _id } = req.user;
+  const { commentId } = req.params;
+  const { content } = req.body;
+
+  const data = await Comment.findByIdAndUpdate(
+    commentId,
+    { $set: { content } },
+    { new: true }
+  );
+  return res
+    .status(200)
+    .json(new ApiResponse("successfully update", 200, data));
+});
+
 export {
   getVideoComments,
+  getTweetComments,
+  addTweetComment,
+  deleteTweetComment,
+  updateTweetComment,
   addComment,
   updateComment,
   deleteComment,
-  addCommentTweet,
 };

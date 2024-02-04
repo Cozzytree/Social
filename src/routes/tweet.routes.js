@@ -12,7 +12,7 @@ const router = Router();
 
 router.route("/addTweet").post(verifyJwt, postTweet);
 router.route("/d/:tweetId").delete(verifyJwt, deleteTweet);
-router.route("/et/:tweetId").patch(verifyJwt, editTweet);
+router.route("/editTweet/:tweetId").patch(verifyJwt, editTweet);
 router.route("/at").get(mildJwt, getAllTweet);
 router.route("/user_t/:userId").get(mildJwt, getUserTweet);
 
