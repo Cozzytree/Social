@@ -23,15 +23,15 @@ app.use(express.json({ limit: "15kb" }));
 app.use(express.urlencoded({ extended: true, limit: "15kb" }));
 app.use(express.static("public"));
 app.use(cookieParser());
-app.use((req, _, next) => {
-  fs.appendFile(
-    "log.txt",
-    `\n${Date.now()} : ${req.ip} : ${req.method} : ${req.path}`,
-    () => {
-      next();
-    }
-  );
-});
+// app.use((req, _, next) => {
+//   fs.appendFile(
+//     "log.txt",
+//     `\n${Date.now()} : ${req.ip} : ${req.method} : ${req.path}`,
+//     () => {
+//       next();
+//     }
+//   );
+// });
 
 app.use((err, req, res, next) => {
   res.locals.error = err;
@@ -42,7 +42,6 @@ app.use((err, req, res, next) => {
 });
 
 //*routes import
-
 import userRouter from "../src/routes/user.routes.js";
 import commentRouter from "../src/routes/comment.routes.js";
 import tweetRouter from "../src/routes/tweet.routes.js";
@@ -52,7 +51,6 @@ import subscribe from "../src/routes/subscription.routes.js";
 import playlist from "../src/routes/playlist.routes.js";
 
 //*routes declaration
-
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/comments", commentRouter);
 app.use("/api/v1/tweet", tweetRouter);

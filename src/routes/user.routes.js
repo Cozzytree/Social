@@ -12,6 +12,8 @@ import {
   updateUserCoverImage,
   getCurrentUser,
   updateWatchHistory,
+  loginWithOtp,
+  verifyOtp,
 } from "../controllers/user.controller.js";
 import { upload } from "../middleware/multer.middleware.js";
 import { mildJwt, verifyJwt } from "../middleware/auth.middleware.js";
@@ -28,6 +30,8 @@ router.route("/register").post(
 router.route("/login").post(loginUser);
 router.route("/getcurrentUser").get(verifyJwt, getCurrentUser);
 router.route("/wh/:videoId").patch(mildJwt, updateWatchHistory);
+router.route("/login/send-otp").post(loginWithOtp);
+router.route("/login/verifyOtp").post(verifyOtp);
 
 //* Secured routes
 router.route("/logout").post(verifyJwt, logoutUser);

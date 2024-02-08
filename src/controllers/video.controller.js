@@ -39,7 +39,7 @@ export const uploadVideo = asyncHandler(async (req, res) => {
 
   //* video error handle
   if (!thumbnailUrl) {
-    throw new ApiError(401, "tumbnail is required");
+    throw new ApiError(404, "tumbnail is required");
   }
   if (!videoUrl) {
     throw new ApiError(404, "something went wrong");

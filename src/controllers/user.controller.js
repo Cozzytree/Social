@@ -6,6 +6,30 @@ import { uploadInCloudinary } from "../utils/cloudinary.js";
 import jwt from "jsonwebtoken";
 import { deleteImage } from "../utils/cloudinaryDelete.js";
 import mongoose from "mongoose";
+import nodemailer from "nodemailer";
+
+const sendEmail = async (to, subject, text) => {
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
+    auth: {
+      user: "hootowldhrubo@gmail.com",
+      pass: process.env.APP_CODE,
+    },
+  });
+
+  const mailOptions = {
+    from: "hootowldhrubo@gmail.com",
+    to,
+    subject,
+    text,
+  };
+
+  const info = await transporter.sendMail(mailOptions);
+  console.log("Email sent: " + info.response);
+};
 
 async function generate_AccessAnd_RefreshToken(id) {
   try {
@@ -346,7 +370,6 @@ export const updateUserCoverImage = asyncHandler(async (req, res) => {
 
 export const getUserChannelProfile = asyncHandler(async (req, res) => {
   const { userId } = req?.params;
-  // if (!userId) throw new ApiError(401, "couldn't find the user");
   const channel = await User.aggregate([
     {
       $match: {
@@ -483,10 +506,62 @@ export const updateWatchHistory = asyncHandler(async (req, res) => {
   if (!_id) return res.status(200);
 
   await User.findByIdAndUpdate(_id, {
-    $push: {
+    $addToSet: {
       watchHistory: videoId,
     },
   });
 
   return res.status(200);
+});
+
+export const loginWithOtp = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  function generateOTP() {
+    const random = Math.floor(Math.random() * 1000000);
+    const otp = String(random).padStart(6, "0");
+    return +otp;
+  }
+
+  const otp = generateOTP();
+
+  const user = await User.findOneAndUpdate(
+    { email },
+    { otp: { code: otp, createdAt: new Date() } },
+    { upsert: true, new: true }
+  );
+
+  sendEmail(email, "OTP Verification", `Your OTP is: ${otp}`);
+
+  setTimeout(
+    async () => {
+      await User.findOneAndUpdate({ email }, { otp: null });
+      console.log("OTP expired for user:", email);
+    },
+    10 * 60 * 1000
+  );
+
+  res.status(200).json(new ApiResponse("OTP sent successfully", 200, {}));
+});
+
+export const verifyOtp = asyncHandler(async (req, res) => {
+  const { email, otp } = req.body;
+
+  const user = await User.findOne({ email });
+
+  if (!user || !user.otp) {
+    throw new ApiError(404, "User or OTP not found");
+  }
+
+  const storedOtp = user.otp;
+  if (
+    otp !== storedOtp.code ||
+    Date.now() - storedOtp.createdAt.getTime() > 10 * 60 * 1000
+  ) {
+    throw new ApiError(401, "Invalid OTP or OTP expired");
+  }
+
+  await User.findOneAndUpdate({ email }, { otp: null });
+
+  res.status(200).json({ message: "Logged in successfully", user: user });
 });

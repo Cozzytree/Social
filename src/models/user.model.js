@@ -19,6 +19,10 @@ const usersSchema = new Schema(
     coverImage: { type: String },
     watchHistory: [{ type: Schema.Types.ObjectId, ref: "Video" }],
     refreshToken: { type: String },
+    otp: {
+      type: Object,
+      default: null,
+    },
   },
   { timestamps: true }
 );
