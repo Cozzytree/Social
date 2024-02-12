@@ -45,7 +45,7 @@ async function generate_AccessAnd_RefreshToken(id) {
   }
 }
 
-//*..........................Register User ........................
+//..........................Register User ........................
 export const registerUser = asyncHandler(async (req, res) => {
   // get data from user
   const { username, email, password, fullName } = req.body;
@@ -114,38 +114,38 @@ export const registerUser = asyncHandler(async (req, res) => {
     .json(new ApiResponse("user successfully registered", 200, createdUser));
 });
 
-//*..........................login user ........................
+//..........................login user ........................
 export const loginUser = asyncHandler(async (req, res) => {
   const { email, password, username } = req.body;
 
-  //* Check if email or username is recieved
+  // Check if email or username is recieved
   if (!email && !username) {
     throw new ApiError(401, "Username or email is required");
   }
 
-  //* Find the user in the database
+  // Find the user in the database
   const user = await User.findOne({ $or: [{ email }, { username }] });
   if (!user) {
     throw new ApiError(404, "User dosent exist");
   }
 
-  //* Check id the password match
+  // Check id the password match
   const checkIfCorrect = await user.checkPassword(password);
   if (!checkIfCorrect) {
     throw new ApiError(401, "Incorrect password");
   }
 
-  //* Generate Access and refreshToken
+  // Generate Access and refreshToken
   const { accessToken, refreshToken } = await generate_AccessAnd_RefreshToken(
     user._id
   );
 
-  //* Modifying the object that needs to be sent as a response
+  // Modifying the object that needs to be sent as a response
   const userObject = await User.findById(user._id).select(
     "-password -accessToken"
   );
 
-  //* Response
+  // Response
   const options = {
     httpOnly: true,
     secure: true,
@@ -153,6 +153,7 @@ export const loginUser = asyncHandler(async (req, res) => {
     domain: "localhost",
     path: "/",
   };
+
   return res
     .status(200)
     .cookie("accessToken", accessToken, options)
@@ -519,7 +520,7 @@ export const loginWithOtp = asyncHandler(async (req, res) => {
 
   function generateOTP() {
     const random = Math.floor(Math.random() * 1000000);
-    const otp = String(random).padStart(6, "0");
+    const otp = String(random).padStart(5, "0");
     return +otp;
   }
 
@@ -553,7 +554,7 @@ export const verifyOtp = asyncHandler(async (req, res) => {
     throw new ApiError(404, "User or OTP not found");
   }
 
-  const storedOtp = user.otp;
+  const storedOtp = user?.otp;
   if (
     otp !== storedOtp.code ||
     Date.now() - storedOtp.createdAt.getTime() > 10 * 60 * 1000

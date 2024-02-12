@@ -23,6 +23,7 @@ app.use(express.json({ limit: "15kb" }));
 app.use(express.urlencoded({ extended: true, limit: "15kb" }));
 app.use(express.static("public"));
 app.use(cookieParser());
+
 // app.use((req, _, next) => {
 //   fs.appendFile(
 //     "log.txt",
@@ -33,13 +34,13 @@ app.use(cookieParser());
 //   );
 // });
 
-app.use((err, req, res, next) => {
-  res.locals.error = err;
-  const status = err.status || 500;
-  res.status(status);
-  res.render("error");
-  next();
-});
+// app.use((err, req, res, next) => {
+//   res.locals.error = err;
+//   const status = err.status || 500;
+//   res.status(status);
+//   res.render("error");
+//   next();
+// });
 
 //*routes import
 import userRouter from "../src/routes/user.routes.js";

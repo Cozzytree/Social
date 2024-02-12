@@ -34,26 +34,31 @@ export const uploadVideo = asyncHandler(async (req, res) => {
   }
 
   //* upload in cloud
-  const videoUrl = await uploadInCloudinary(video);
-  const thumbnailUrl = await uploadInCloudinary(thumbnail);
+  const {
+    secure_url: videoUrl,
+    public_id: videopId,
+    duration,
+  } = await uploadInCloudinary(video);
+  const { secure_url: thumbnailUrl, public_id: thumbnailpId } =
+    await uploadInCloudinary(thumbnail);
 
-  //* video error handle
+  //* video error handle  console.log(videoUrl, thumbnailUrl);
   if (!thumbnailUrl) {
-    throw new ApiError(404, "tumbnail is required");
+    throw new ApiError(404, "couldnm't find the file");
   }
   if (!videoUrl) {
-    throw new ApiError(404, "something went wrong");
+    throw new ApiError(404, "couldn't find the video");
   }
 
   //* create new document
   const data = await Video.create({
-    videoFile: videoUrl?.secure_url,
-    videoPublicId: videoUrl?.public_id,
-    thumbnailPublicId: thumbnailUrl?.public_id,
+    videoFile: videoUrl,
+    videoPublicId: videopId,
+    thumbnailPublicId: thumbnailpId,
     title: title,
-    duration: videoUrl?.duration,
+    duration: duration,
     description: description || "",
-    thumbnail: thumbnailUrl?.secure_url,
+    thumbnail: thumbnailUrl,
     owner: _id,
   });
 
@@ -72,7 +77,7 @@ export const deleteVideo = asyncHandler(async (req, res) => {
 
   const videoData = await Video.findById(videoId);
 
-  if (!user?._id.equals(videoData?.owner)) {
+  if (user?._id !== videoData?.owner.toString()) {
     throw new ApiError(401, "not the owner");
   }
 
@@ -287,4 +292,47 @@ export const updateView = asyncHandler(async (req, res) => {
     { new: true }
   );
   return res.status(200).json(new ApiResponse("viewed", 200, data));
+});
+
+export const rocommendedVideos = asyncHandler(async (req, res) => {
+  const { videoId } = req.params;
+
+  const data = await Video.aggregate([
+    {
+      $match: {
+        _id: { $ne: new mongoose.Types.ObjectId(videoId) },
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "owner",
+      },
+    },
+    {
+      $unwind: {
+        path: "$owner",
+        includeArrayIndex: "string",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $project: {
+        title: 1,
+        thumbnail: 1,
+        videoFile: 1,
+        _id: 1,
+        duration: 1,
+        user: {
+          username: "$owner.username",
+          avatar: "$owner.avatar",
+          id: "$owner._id",
+        },
+      },
+    },
+  ]);
+
+  return res.status(200).json(new ApiResponse("success", 200, data));
 });

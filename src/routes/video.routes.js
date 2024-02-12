@@ -9,6 +9,7 @@ import {
   updateVideoTandD,
   updateView,
   uploadVideo,
+  rocommendedVideos,
 } from "../controllers/video.controller.js";
 import { upload } from "../middleware/multer.middleware.js";
 
@@ -32,5 +33,6 @@ router
 router.route("/user_v/:userId").get(mildJwt, getUserVideo);
 router.route("/:videoId").get(mildJwt, getAVideo);
 router.route("/addView/:videoId").patch(updateView);
+router.route("/recommends/:videoId").get(rocommendedVideos);
 
 export default router;

@@ -17,11 +17,9 @@ export async function uploadInCloudinary(localFilepath) {
       resource_type: "auto",
       media_metadata: true,
     });
-
+    fs.unlinkSync(localFilepath);
     return response;
   } catch (error) {
     return null;
-  } finally {
-    fs.unlink(localFilepath);
   }
 }
