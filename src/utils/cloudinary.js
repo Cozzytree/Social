@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 import { v2 as cloudinary } from "cloudinary";
 import fs from "fs";
+import { deleteImage } from "./cloudinaryDelete.js";
 dotenv.config();
 
 cloudinary.config({
@@ -9,17 +10,40 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_APISECRET,
 });
 
+let response;
+
 export async function uploadInCloudinary(localFilepath) {
   try {
-    if (!localFilepath) return;
+    if (!localFilepath) return null;
 
-    const response = await cloudinary.uploader.upload(localFilepath, {
+    const uploadOptions = {
       resource_type: "auto",
       media_metadata: true,
+    };
+
+    response = await new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        uploadOptions,
+        (error, result) => {
+          if (error) {
+            throw new Error(error);
+          } else {
+            resolve(result);
+          }
+        }
+      );
+      const fileStream = fs.createReadStream(localFilepath);
+      fileStream.pipe(uploadStream);
     });
+
+    // Remove the local file after upload
     fs.unlinkSync(localFilepath);
     return response;
   } catch (error) {
+    if (error) {
+      deleteImage(response?.public_id);
+    }
+    console.error("Error uploading to Cloudinary:", error);
     return null;
   }
 }

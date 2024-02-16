@@ -52,6 +52,7 @@ import subscribe from "../src/routes/subscription.routes.js";
 import playlist from "../src/routes/playlist.routes.js";
 
 //*routes declaration
+
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/comments", commentRouter);
 app.use("/api/v1/tweet", tweetRouter);
@@ -59,6 +60,8 @@ app.use("/api/v1/videos", videoRouter);
 app.use("/api/v1/like", likeRouter);
 app.use("/api/v1/subscribe", subscribe);
 app.use("/api/v1/playlist", playlist);
+
+import connectDB from "./db/database.js";
 
 export default app;
 

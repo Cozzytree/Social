@@ -117,6 +117,7 @@ export const registerUser = asyncHandler(async (req, res) => {
 //..........................login user ........................
 export const loginUser = asyncHandler(async (req, res) => {
   const { email, password, username } = req.body;
+  console.log(email, password);
 
   // Check if email or username is recieved
   if (!email && !username) {
@@ -548,21 +549,43 @@ export const loginWithOtp = asyncHandler(async (req, res) => {
 export const verifyOtp = asyncHandler(async (req, res) => {
   const { email, otp } = req.body;
 
-  const user = await User.findOne({ email });
+  const user = await User.findOne({ email }).select("-password -accessToken");
 
-  if (!user || !user.otp) {
+  if (!user?.otp) {
     throw new ApiError(404, "User or OTP not found");
   }
 
   const storedOtp = user?.otp;
   if (
-    otp !== storedOtp.code ||
+    otp !== storedOtp?.code ||
     Date.now() - storedOtp.createdAt.getTime() > 10 * 60 * 1000
   ) {
     throw new ApiError(401, "Invalid OTP or OTP expired");
   }
 
+  const { accessToken, refreshToken } = await generate_AccessAnd_RefreshToken(
+    user?._id
+  );
+
   await User.findOneAndUpdate({ email }, { otp: null });
 
-  res.status(200).json({ message: "Logged in successfully", user: user });
+  const options = {
+    httpOnly: true,
+    secure: true,
+    sameSite: "None",
+    domain: "localhost",
+    path: "/",
+  };
+
+  return res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+      new ApiResponse("logged in Successfully", 200, {
+        user: user,
+        accessToken,
+        refreshToken,
+      })
+    );
 });

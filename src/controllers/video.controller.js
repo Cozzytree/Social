@@ -5,10 +5,10 @@ import ApiResponse from "../utils/apiResponse.js";
 import ApiError from "../utils/apiError.js";
 import { deleteImage } from "../utils/cloudinaryDelete.js";
 import mongoose from "mongoose";
+import { User } from "../models/user.model.js";
 
 export const uploadVideo = asyncHandler(async (req, res) => {
   //* Video file path
-
   const { title, description } = req.body;
   let video, thumbnail;
   if (req.files?.videoFile) {
@@ -34,15 +34,18 @@ export const uploadVideo = asyncHandler(async (req, res) => {
   }
 
   //* upload in cloud
-  const {
-    secure_url: videoUrl,
-    public_id: videopId,
-    duration,
-  } = await uploadInCloudinary(video);
-  const { secure_url: thumbnailUrl, public_id: thumbnailpId } =
-    await uploadInCloudinary(thumbnail);
+  const uploadVideoPromise = uploadInCloudinary(video);
+  const uploadThumbnailPromise = uploadInCloudinary(thumbnail);
 
   //* video error handle  console.log(videoUrl, thumbnailUrl);
+  const [videoRes, thumbnailRes] = await Promise.all([
+    uploadVideoPromise,
+    uploadThumbnailPromise,
+  ]);
+
+  const { secure_url: videoUrl, public_id: videoId, duration } = videoRes;
+  const { secure_url: thumbnailUrl, public_id: thumbnailId } = thumbnailRes;
+
   if (!thumbnailUrl) {
     throw new ApiError(404, "couldnm't find the file");
   }
@@ -53,8 +56,8 @@ export const uploadVideo = asyncHandler(async (req, res) => {
   //* create new document
   const data = await Video.create({
     videoFile: videoUrl,
-    videoPublicId: videopId,
-    thumbnailPublicId: thumbnailpId,
+    videoPublicId: videoId,
+    thumbnailPublicId: thumbnailId,
     title: title,
     duration: duration,
     description: description || "",
@@ -335,4 +338,17 @@ export const rocommendedVideos = asyncHandler(async (req, res) => {
   ]);
 
   return res.status(200).json(new ApiResponse("success", 200, data));
+});
+
+export const searchVideo = asyncHandler(async (req, res) => {
+  const { q } = req.query;
+  const data = await Video.find({
+    title: q,
+  });
+
+  const channels = await User.find({ username: q });
+
+  const final = [...data, ...channels];
+  console.log(final);
+  return res.status(200).json(new ApiResponse("success", 200, final));
 });
