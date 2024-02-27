@@ -6,6 +6,8 @@ import ApiError from "../utils/apiError.js";
 import { deleteImage } from "../utils/cloudinaryDelete.js";
 import mongoose from "mongoose";
 import { User } from "../models/user.model.js";
+import { Like } from "../models/like.model.js";
+import { Comment } from "../models/comment.model.js";
 
 export const uploadVideo = asyncHandler(async (req, res) => {
   //* Video file path
@@ -88,6 +90,8 @@ export const deleteVideo = asyncHandler(async (req, res) => {
   await deleteImage(videoData?.thumbnailPublicId);
 
   const deleteVideo = await Video.findByIdAndDelete(videoId);
+  await Like.deleteMany({ video: videoId });
+  await Comment.deleteMany({ video: videoId });
 
   return res
     .status(200)
@@ -116,6 +120,7 @@ export const updateVideoTandD = asyncHandler(async (req, res) => {
 export const getAllVideos = asyncHandler(async (req, res) => {
   const { page = 1, limit = 10 } = req.query;
   const data = await Video.aggregate([
+    { $match: { isPublished: true } },
     {
       $lookup: {
         from: "users",
@@ -143,9 +148,11 @@ export const getAllVideos = asyncHandler(async (req, res) => {
     {
       $project: {
         _id: 1,
+        duration: 1,
         title: 1,
         videoFile: 1,
         thumbnail: 1,
+        views: 1,
         user: {
           id: "$user._id",
           username: "$user.username",
@@ -341,14 +348,17 @@ export const rocommendedVideos = asyncHandler(async (req, res) => {
 });
 
 export const searchVideo = asyncHandler(async (req, res) => {
-  const { q } = req.query;
-  const data = await Video.find({
-    title: q,
-  });
-
-  const channels = await User.find({ username: q });
-
-  const final = [...data, ...channels];
-  console.log(final);
-  return res.status(200).json(new ApiResponse("success", 200, final));
+  const { q, filter, sort } = req.query;
+  const regex = new RegExp(q, "i");
+  const data = await Video.aggregate([
+    {
+      $match: {
+        title: regex,
+      },
+    },
+    {
+      $sort: { sort: 1 },
+    },
+  ]);
+  return res.status(200).json(new ApiResponse("success", 200, data));
 });

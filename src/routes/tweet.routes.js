@@ -4,6 +4,7 @@ import {
   deleteTweet,
   editTweet,
   getAllTweet,
+  getAtweet,
   getUserTweet,
   postTweet,
 } from "../controllers/tweet.controller.js";
@@ -11,6 +12,7 @@ import {
 const router = Router();
 
 router.route("/addTweet").post(verifyJwt, postTweet);
+router.route("/info/:tweetId").get(mildJwt, getAtweet);
 router.route("/d/:tweetId").delete(verifyJwt, deleteTweet);
 router.route("/editTweet/:tweetId").patch(verifyJwt, editTweet);
 router.route("/at").get(mildJwt, getAllTweet);

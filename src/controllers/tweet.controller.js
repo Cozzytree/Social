@@ -202,3 +202,73 @@ export const getUserTweet = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse("Here are the tweets", 200, data));
 });
+
+// get a tweet
+export const getAtweet = asyncHandler(async (req, res) => {
+  const { tweetId } = req.params;
+  const data = await Tweet.aggregate([
+    {
+      $match: {
+        _id: new mongoose.Types.ObjectId(tweetId),
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "ownerInfo",
+      },
+    },
+    {
+      $lookup: {
+        from: "likes",
+        localField: "_id",
+        foreignField: "tweet",
+        as: "totalLikes",
+      },
+    },
+    {
+      $lookup: {
+        from: "comments",
+        localField: "_id",
+        foreignField: "tweet",
+        as: "totalComments",
+      },
+    },
+
+    {
+      $addFields: {
+        totalLikesCount: { $size: "$totalLikes" },
+        totalCommentsCount: { $size: "$totalComments" },
+      },
+    },
+    {
+      $unwind: "$ownerInfo",
+    },
+    {
+      $project: {
+        createdAt: 1,
+        updatedAt: 1,
+        content: 1,
+        isLiked: {
+          $cond: {
+            if: { $in: [req?.user?._id || "", "$totalLikes.likedBy"] },
+            then: true,
+            else: false,
+          },
+        },
+        tweets: 1,
+        totalLikesCount: 1,
+        totalCommentsCount: 1,
+        ownerInfo: {
+          _id: 1,
+          username: 1,
+          avatar: 1,
+        },
+      },
+    },
+  ]);
+
+  return res.status(200).json(new ApiResponse("success", 200, data[0]));
+});

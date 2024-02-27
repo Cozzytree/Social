@@ -520,8 +520,11 @@ export const loginWithOtp = asyncHandler(async (req, res) => {
   const { email } = req.body;
 
   function generateOTP() {
-    const random = Math.floor(Math.random() * 1000000);
-    const otp = String(random).padStart(5, "0");
+    let otp = "";
+    for (let i = 0; i < 6; i++) {
+      const random = Math.floor(Math.random() * 9 + 1);
+      otp += random;
+    }
     return +otp;
   }
 
@@ -588,4 +591,11 @@ export const verifyOtp = asyncHandler(async (req, res) => {
         refreshToken,
       })
     );
+});
+
+export const clearWHistory = asyncHandler(async (req, res) => {
+  const { _id } = req.user;
+  await User.findByIdAndUpdate(_id, { watchHistory: [] });
+
+  return res.status(200).json(new ApiResponse("success", 200, {}));
 });

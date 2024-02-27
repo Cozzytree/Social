@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 import { v2 as cloudinary } from "cloudinary";
 import fs from "fs";
 import { deleteImage } from "./cloudinaryDelete.js";
+import { pipeline } from "stream";
 dotenv.config();
 
 cloudinary.config({
@@ -27,16 +28,20 @@ export async function uploadInCloudinary(localFilepath) {
         (error, result) => {
           if (error) {
             throw new Error(error);
+            console.log("error", error);
           } else {
             resolve(result);
           }
         }
       );
       const fileStream = fs.createReadStream(localFilepath);
-      fileStream.pipe(uploadStream);
+      pipeline(fileStream, uploadStream, (error) => {
+        if (error) console.log("pipeline", error);
+      });
     });
 
     // Remove the local file after upload
+    console.log("response", response);
     fs.unlinkSync(localFilepath);
     return response;
   } catch (error) {

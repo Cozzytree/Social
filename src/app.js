@@ -61,8 +61,6 @@ app.use("/api/v1/like", likeRouter);
 app.use("/api/v1/subscribe", subscribe);
 app.use("/api/v1/playlist", playlist);
 
-import connectDB from "./db/database.js";
-
 export default app;
 
 // nodemailer at the end
