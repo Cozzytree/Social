@@ -350,6 +350,7 @@ export const rocommendedVideos = asyncHandler(async (req, res) => {
 export const searchVideo = asyncHandler(async (req, res) => {
   const { q, filter, sort } = req.query;
   const regex = new RegExp(q, "i");
+  console.log(regex, q);
   const data = await Video.aggregate([
     {
       $match: {

@@ -28,7 +28,6 @@ export async function uploadInCloudinary(localFilepath) {
         (error, result) => {
           if (error) {
             throw new Error(error);
-            console.log("error", error);
           } else {
             resolve(result);
           }
