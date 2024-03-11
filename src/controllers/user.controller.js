@@ -9,19 +9,23 @@ import mongoose from "mongoose";
 import nodemailer from "nodemailer";
 
 const sendEmail = async (to, subject, text) => {
+  if (!to || !subject || !text) {
+    throw new Error("Invalid email parameters");
+  }
+
   const transporter = nodemailer.createTransport({
     service: "gmail",
     host: "smtp.gmail.com",
     port: 465,
     secure: true,
     auth: {
-      user: "hootowldhrubo@gmail.com",
+      user: process.env.MY_EMAIL,
       pass: process.env.APP_CODE,
     },
   });
 
   const mailOptions = {
-    from: "hootowldhrubo@gmail.com",
+    from: process.env.MY_EMAIL,
     to,
     subject,
     text,
@@ -29,6 +33,7 @@ const sendEmail = async (to, subject, text) => {
 
   const info = await transporter.sendMail(mailOptions);
   console.log("Email sent: " + info.response);
+  transporter.close();
 };
 
 async function generate_AccessAnd_RefreshToken(id) {

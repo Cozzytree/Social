@@ -3,7 +3,6 @@ import { Playlist } from "../models/playlist.model.js";
 import ApiError from "../utils/apiError.js";
 import ApiResponse from "../utils/apiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { loginUser } from "./user.controller.js";
 
 export const initializePlaylist = asyncHandler(async (req, res) => {
   const { _id } = req.user;
@@ -236,7 +235,80 @@ export const deleteVideofromPL = asyncHandler(async (req, res) => {
 
 export const getUserPlaylists = asyncHandler(async (req, res) => {
   const { _id } = req.user;
-  const data = await Playlist.find({ owner: _id });
+  const { videoId } = req.params;
+  const data = await Playlist.aggregate([
+    {
+      $match: {
+        owner: new mongoose.Types.ObjectId(_id),
+      },
+    },
+    {
+      $addFields: {
+        exist: {
+          $cond: {
+            if: {
+              $in: [new mongoose.Types.ObjectId(videoId), "$videos"],
+            },
+            then: true,
+            else: false,
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        exist: 1,
+        name: 1,
+        description: 1,
+        owner: 1,
+      },
+    },
+  ]);
 
   return res.status(200).json(new ApiResponse("your playlists", 200, data));
+});
+
+export const editPlaylistName = asyncHandler(async (req, res) => {
+  const { _id } = req.user;
+  const { playlistId } = req.params;
+  const { name } = req.body;
+  if (!playlistId) throw new ApiError(404, "id not found");
+  const data = await Playlist.findById(playlistId);
+
+  //check for owner
+  if (!data.owner.equals(_id)) {
+    throw new ApiError(401, "unauthorized");
+  }
+
+  if (name.length <= 3 || !name) {
+    throw new ApiError(404, "invalid name or not found");
+  }
+
+  await Playlist.findByIdAndUpdate(playlistId, { name });
+
+  return res.status(200).json(new ApiResponse("successfully updated", 200, {}));
+});
+
+export const editDescription = asyncHandler(async (req, res) => {
+  const { _id } = req.user;
+  const { playlistId } = req.params;
+  const { description } = req.body;
+
+  if (!playlistId) throw new ApiError(404, "id not found");
+  const data = await Playlist.findById(playlistId);
+
+  //check for owner
+  if (!data.owner.equals(_id)) {
+    throw new ApiError(401, "unauthorized");
+  }
+
+  if (description.length <= 10 || !description) {
+    throw new ApiError(404, "very short or not found");
+  }
+
+  await Playlist.findByIdAndUpdate(playlistId, { description });
+
+  return res
+    .status(200)
+    .json(new ApiResponse("successsfully updated", 200, {}));
 });

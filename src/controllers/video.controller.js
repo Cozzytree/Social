@@ -152,6 +152,7 @@ export const getAllVideos = asyncHandler(async (req, res) => {
         title: 1,
         videoFile: 1,
         thumbnail: 1,
+        isPublished: 1,
         views: 1,
         user: {
           id: "$user._id",
