@@ -20,7 +20,7 @@ function startServer() {
     })
     .catch((err) => {
       console.error("MongoDB connection failed", err);
-      startServer();
+      if (err) return startServer();
     });
 }
 

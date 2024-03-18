@@ -60,6 +60,10 @@ export const editTweet = asyncHandler(async (req, res) => {
 
 //* Get all tweets
 export const getAllTweet = asyncHandler(async (req, res) => {
+  const page = parseInt(req.query.page, 10) || 1;
+  const limit = parseInt(req.query.limit, 10) || 10;
+  const skip = (page - 1) * limit;
+
   const allTweets = await Tweet.aggregate([
     {
       $lookup: {
@@ -85,16 +89,13 @@ export const getAllTweet = asyncHandler(async (req, res) => {
         as: "totalComments",
       },
     },
-
     {
       $addFields: {
         totalLikesCount: { $size: "$totalLikes" },
         totalCommentsCount: { $size: "$totalComments" },
       },
     },
-    {
-      $unwind: "$ownerInfo",
-    },
+    { $unwind: "$ownerInfo" },
     {
       $project: {
         createdAt: 1,
@@ -102,7 +103,9 @@ export const getAllTweet = asyncHandler(async (req, res) => {
         content: 1,
         isLiked: {
           $cond: {
-            if: { $in: [req?.user?._id || "", "$totalLikes.likedBy"] },
+            if: {
+              $in: [req?.user?._id || "", "$totalLikes.likedBy"],
+            },
             then: true,
             else: false,
           },
@@ -110,19 +113,22 @@ export const getAllTweet = asyncHandler(async (req, res) => {
         tweets: 1,
         totalLikesCount: 1,
         totalCommentsCount: 1,
-        ownerInfo: {
-          _id: 1,
-          username: 1,
-          avatar: 1,
-        },
+        ownerInfo: { _id: 1, username: 1, avatar: 1 },
+      },
+    },
+    {
+      $facet: {
+        paginated: [{ $skip: skip }, { $limit: limit }],
+        totalCount: [{ $count: "total" }],
       },
     },
   ]);
-  if (!allTweets) throw new ApiError(404, "was't able to get tweets");
+
+  if (!allTweets) throw new ApiError(404, "Wasn't able to get tweets");
 
   return res
     .status(200)
-    .json(new ApiResponse("here you have it", 200, allTweets));
+    .json(new ApiResponse("Here you have it", 200, allTweets));
 });
 
 export const getUserTweet = asyncHandler(async (req, res) => {

@@ -28,53 +28,6 @@ export const initializePlaylist = asyncHandler(async (req, res) => {
 export const getPlaylist = asyncHandler(async (req, res) => {
   const { playlistId } = req.params;
 
-  // [
-  //   {
-  //     $match: {
-  //       _id: ObjectId("65bfcbc0f7dda7612c5514e0"),
-  //     },
-  //   },
-  //   {
-  //     $lookup: {
-  //       from: "users",
-  //       localField: "owner",
-  //       foreignField: "_id",
-  //       as: "user",
-  //     },
-  //   },
-  //   {
-  //     $lookup: {
-  //       from: "videos",
-  //       localField: "videos",
-  //       foreignField: "_id",
-  //       as: "playlistV",
-  //     },
-  //   },
-  //   {
-  //     $unwind: {
-  //       path: "$user",
-  //       preserveNullAndEmptyArrays: true,
-  //     },
-  //   },
-  //   {
-  //     $project: {
-  //       name: 1,
-  //       description: 1,
-  //       createdBy: {
-  //         username: "$user.username",
-  //         _id: "$user._id",
-  //       },
-  //       playlistV: {
-  //         videosFile: "$playlistV.videoFile",
-  //         thumbnail: "$playlistV.thumbnail",
-  //         duration: "$playlistV.duration",
-  //         _id: "$playlistV._id",
-  //         title: "$playlistV.title",
-  //       },
-  //     },
-  //   },
-  // ];
-
   const data = await Playlist.aggregate([
     {
       $match: {
@@ -153,6 +106,7 @@ export const getPlaylist = asyncHandler(async (req, res) => {
       $project: {
         name: 1,
         description: 1,
+        isPublic: 1,
         createdBy: {
           username: "$user.username",
           _id: "$user._id",
@@ -180,22 +134,32 @@ export const getPlaylist = asyncHandler(async (req, res) => {
 export const addVideoToPlaylist = asyncHandler(async (req, res) => {
   const { _id } = req.user;
   const { videoId, playlistId } = req.params;
-  if (!_id) throw new ApiError(401, "unauthorized request");
-  if (!videoId) throw new ApiError(401, "videoId is required");
-  if (!playlistId) throw new ApiError(401, "playlistId is required");
+
+  // Validate ObjectIds
+  if (
+    !mongoose.Types.ObjectId.isValid(_id) ||
+    !mongoose.Types.ObjectId.isValid(videoId) ||
+    !mongoose.Types.ObjectId.isValid(playlistId)
+  ) {
+    throw new ApiError(400, "Invalid ObjectId");
+  }
+
+  if (!_id) throw new ApiError(401, "Unauthorized request");
+  if (!videoId) throw new ApiError(400, "videoId is required");
+  if (!playlistId) throw new ApiError(400, "playlistId is required");
 
   const data = await Playlist.findByIdAndUpdate(
     playlistId,
     {
       $addToSet: { videos: videoId },
     },
-    { $new: true }
+    { new: true }
   );
-  if (!data) throw new ApiError(404, "no document found");
+  if (!data) throw new ApiError(404, "No document found");
 
   return res
     .status(200)
-    .json(new ApiResponse("video successfully added to playlist", 200, data));
+    .json(new ApiResponse("video added successfully", 200, data));
 });
 
 export const deletePlaylist = asyncHandler(async (req, res) => {
@@ -236,36 +200,50 @@ export const deleteVideofromPL = asyncHandler(async (req, res) => {
 export const getUserPlaylists = asyncHandler(async (req, res) => {
   const { _id } = req.user;
   const { videoId } = req.params;
-  const data = await Playlist.aggregate([
-    {
-      $match: {
-        owner: new mongoose.Types.ObjectId(_id),
-      },
+  const matchStage = {
+    $match: {
+      owner: new mongoose.Types.ObjectId(_id),
     },
-    {
-      $addFields: {
-        exist: {
-          $cond: {
-            if: {
-              $in: [new mongoose.Types.ObjectId(videoId), "$videos"],
-            },
-            then: true,
-            else: false,
+  };
+
+  const addFieldsStage = {
+    $addFields: {
+      exist: {
+        $cond: {
+          if: {
+            $in: [new mongoose.Types.ObjectId(videoId) || "", "$videos"],
           },
+          then: true,
+          else: false,
         },
       },
     },
-    {
-      $project: {
-        exist: 1,
-        name: 1,
-        description: 1,
-        owner: 1,
-      },
+  };
+
+  const projectStage = {
+    $project: {
+      exist: 1,
+      name: 1,
+      description: 1,
+      owner: 1,
     },
+  };
+
+  const data = await Playlist.aggregate([
+    matchStage,
+    addFieldsStage,
+    projectStage,
   ]);
 
   return res.status(200).json(new ApiResponse("your playlists", 200, data));
+});
+
+export const getUserPlaylistNames = asyncHandler(async (req, res) => {
+  const { _id } = req.user;
+  const data = await Playlist.find({ owner: _id }).select(
+    "-description -videos"
+  );
+  return res.status(200).json(new ApiResponse("success", 200, data));
 });
 
 export const editPlaylistName = asyncHandler(async (req, res) => {
@@ -311,4 +289,17 @@ export const editDescription = asyncHandler(async (req, res) => {
   return res
     .status(200)
     .json(new ApiResponse("successsfully updated", 200, {}));
+});
+
+export const toggleIsPublic = asyncHandler(async (req, res) => {
+  const { playlistId } = req.params;
+  const obtainPlaylist =
+    await Playlist.findById(playlistId).select("-owner -videos");
+  let data;
+  if (obtainPlaylist?.isPublic) {
+    data = await Playlist.findByIdAndUpdate(playlistId, { isPublic: false });
+  } else {
+    data = await Playlist.findByIdAndUpdate(playlistId, { isPublic: true });
+  }
+  return res.status(200).json(new ApiResponse("success", 200, data));
 });

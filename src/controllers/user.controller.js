@@ -604,3 +604,14 @@ export const clearWHistory = asyncHandler(async (req, res) => {
 
   return res.status(200).json(new ApiResponse("success", 200, {}));
 });
+
+export const settings = asyncHandler(async (req, res) => {
+  const { _id } = req.user;
+  const data = await User.findById(_id).select(
+    "-password -watchHistory -refreshToken"
+  );
+
+  if (!data) throw new ApiError(404, "user not found");
+
+  return res.status(200).json(new ApiResponse("success", 200, data));
+});

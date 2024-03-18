@@ -9,6 +9,10 @@ const playlistSchema = new Schema(
     description: {
       type: String,
     },
+    isPublic: {
+      type: Boolean,
+      default: true,
+    },
     owner: {
       type: Schema.Types.ObjectId,
       ref: "User",

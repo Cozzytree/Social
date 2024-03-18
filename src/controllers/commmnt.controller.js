@@ -165,7 +165,6 @@ const deleteTweetComment = asyncHandler(async (req, res) => {
 });
 
 const updateTweetComment = asyncHandler(async (req, res) => {
-  const { _id } = req.user;
   const { commentId } = req.params;
   const { content } = req.body;
 

@@ -19,6 +19,15 @@ const usersSchema = new Schema(
     coverImage: { type: String },
     watchHistory: [{ type: Schema.Types.ObjectId, ref: "Video" }],
     refreshToken: { type: String },
+    bio: {
+      text: { type: String, required: false },
+      links: [
+        {
+          name: { type: String, required: false },
+          url: { type: String, required: false },
+        },
+      ],
+    },
     otp: {
       type: Object,
       default: null,
@@ -42,12 +51,9 @@ usersSchema.methods.generateAccessToken = function () {
   return jwt.sign(
     {
       _id: this._id,
-      email: this.email,
+      avatar: this.avatar,
       fullName: this.fullName,
       username: this.username,
-      avatar: this.avatar,
-      coverImage: this.coverImage,
-      watchHistory: this.watchHistory,
     },
     process.env.ACCESS_TOKEN_SECRET,
     {

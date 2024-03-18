@@ -9,16 +9,19 @@ import {
   editDescription,
   getUserPlaylists,
   initializePlaylist,
+  getUserPlaylistNames,
+  toggleIsPublic,
 } from "../controllers/playlist.controller.js";
 const router = Router();
 
 router.route("/getAplaylist/:playlistId").get(verifyJwt, getPlaylist);
 router.route("/getPlaylists/:videoId").get(verifyJwt, getUserPlaylists);
+router.route("/getPlaylistNames").get(verifyJwt, getUserPlaylistNames);
 router.route("/createPlaylist").put(verifyJwt, initializePlaylist);
 router.route("/deletePlaylist/:playlistId").delete(verifyJwt, deletePlaylist);
 router
   .route("/addVideo/:playlistId/:videoId")
-  .put(verifyJwt, addVideoToPlaylist);
+  .patch(verifyJwt, addVideoToPlaylist);
 
 router
   .route("/removeVideo/:playlistId/:videoId")
@@ -29,5 +32,6 @@ router
   .patch(verifyJwt, editPlaylistName);
 
 router.route("/editDescription/:playlistId").patch(verifyJwt, editDescription);
+router.route("/togglePublic/:playlistId").patch(verifyJwt, toggleIsPublic);
 
 export default router;

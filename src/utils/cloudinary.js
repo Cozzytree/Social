@@ -22,7 +22,7 @@ export async function uploadInCloudinary(localFilepath) {
       media_metadata: true,
     };
 
-    response = await new Promise((resolve, reject) => {
+    response = await new Promise((resolve, _) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         uploadOptions,
         (error, result) => {

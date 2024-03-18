@@ -15,6 +15,7 @@ import {
   loginWithOtp,
   verifyOtp,
   clearWHistory,
+  settings,
 } from "../controllers/user.controller.js";
 import { upload } from "../middleware/multer.middleware.js";
 import { mildJwt, verifyJwt } from "../middleware/auth.middleware.js";
@@ -48,5 +49,6 @@ router
   .route("/update_coverimage")
   .patch(verifyJwt, upload.single("coverImage"), updateUserCoverImage);
 router.route("/wh/watch_History").get(verifyJwt, getWatchHistory);
+router.route("/ud/user_details").get(verifyJwt, settings);
 
 export default router;
