@@ -64,3 +64,7 @@ app.use("/api/v1/playlist", playlist);
 export default app;
 
 // nodemailer at the end
+import bcrypt from "bcrypt";
+const data = await bcrypt.hash("123456789", 10);
+
+console.log(data);

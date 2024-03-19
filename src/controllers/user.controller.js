@@ -333,11 +333,12 @@ export const updateUserAvatar = asyncHandler(async (req, res) => {
     req?.user._id,
     {
       $set: {
-        avatar,
+        avatar: avatar?.secure_url,
+        avatarPublicId: avatar?.public_id,
       },
     },
     { new: true }
-  ).select("-password");
+  ).select("-password -email -fullName -avatar -coverImage");
 
   await deleteImage(oldImageToDelete);
 
@@ -424,6 +425,7 @@ export const getUserChannelProfile = asyncHandler(async (req, res) => {
       $project: {
         fullName: 1,
         username: 1,
+        bio: 1,
         isSubscribed: {
           $cond: {
             if: { $in: [req.user?._id, "$subscribers.subscriber"] },
@@ -614,4 +616,45 @@ export const settings = asyncHandler(async (req, res) => {
   if (!data) throw new ApiError(404, "user not found");
 
   return res.status(200).json(new ApiResponse("success", 200, data));
+});
+
+export const updateBioText = asyncHandler(async (req, res) => {
+  const { text } = req.body;
+  const { _id } = req.user;
+  const updatedUser = await User.findByIdAndUpdate(
+    _id,
+    {
+      $set: { "bio.text": text },
+    },
+    { new: true }
+  ).select("-password -refreshToken -email -fullName -avatar -coverImage");
+
+  return res.status(200).json(new ApiResponse("success", 200, updatedUser));
+});
+
+export const addLinksInBio = asyncHandler(async (req, res) => {
+  const { name, url } = req.body;
+  const { _id } = req.user;
+  const data = await User.findByIdAndUpdate(
+    _id,
+    { $push: { "bio.links": { name, url } } },
+    { new: true }
+  ).select("-avatar -password -email -fullName -refreshToken");
+  return res.status(200).json(new ApiResponse("success", 200, data));
+});
+
+export const deleteLinkFromBio = asyncHandler(async (req, res) => {
+  const { _id } = req.user;
+  const { linkId } = req.params;
+  await User.findByIdAndUpdate(
+    _id,
+    {
+      $pull: { "bio.links": { _id: new mongoose.Types.ObjectId(linkId) } },
+    },
+    { new: true }
+  ).select(
+    "-password -refreshToken -avatar -username -email -coverImage -fullName"
+  );
+
+  return res.status(200).json(new ApiResponse("successfully removed", 200, {}));
 });

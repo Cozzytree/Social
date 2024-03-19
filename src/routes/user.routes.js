@@ -16,6 +16,9 @@ import {
   verifyOtp,
   clearWHistory,
   settings,
+  updateBioText,
+  addLinksInBio,
+  deleteLinkFromBio,
 } from "../controllers/user.controller.js";
 import { upload } from "../middleware/multer.middleware.js";
 import { mildJwt, verifyJwt } from "../middleware/auth.middleware.js";
@@ -50,5 +53,8 @@ router
   .patch(verifyJwt, upload.single("coverImage"), updateUserCoverImage);
 router.route("/wh/watch_History").get(verifyJwt, getWatchHistory);
 router.route("/ud/user_details").get(verifyJwt, settings);
+router.route("/updateBioText").post(verifyJwt, updateBioText);
+router.route("/addLinkToBio").post(verifyJwt, addLinksInBio);
+router.route("/deleteLinkfromBio/:linkId").delete(verifyJwt, deleteLinkFromBio);
 
 export default router;

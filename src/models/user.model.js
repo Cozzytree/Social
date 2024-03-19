@@ -16,7 +16,9 @@ const usersSchema = new Schema(
     fullName: { type: String, required: true, index: true },
     password: { type: String, required: [true, "password is required"] },
     avatar: { type: String },
+    avatarPublicId: { type: String, required: true },
     coverImage: { type: String },
+    coverImagePublicId: { type: String, required: true },
     watchHistory: [{ type: Schema.Types.ObjectId, ref: "Video" }],
     refreshToken: { type: String },
     bio: {
