@@ -12,6 +12,7 @@ const usersSchema = new Schema(
       trim: true,
       index: true,
     },
+    role: { type: String, default: "regular" },
     email: { type: String, required: true, unique: true },
     fullName: { type: String, required: true, index: true },
     password: { type: String, required: [true, "password is required"] },

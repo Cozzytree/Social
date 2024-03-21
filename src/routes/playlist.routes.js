@@ -11,6 +11,7 @@ import {
   initializePlaylist,
   getUserPlaylistNames,
   toggleIsPublic,
+  getPublicPlaylists,
 } from "../controllers/playlist.controller.js";
 const router = Router();
 
@@ -33,5 +34,6 @@ router
 
 router.route("/editDescription/:playlistId").patch(verifyJwt, editDescription);
 router.route("/togglePublic/:playlistId").patch(verifyJwt, toggleIsPublic);
+router.route("/publicPlaylist/:userId").get(verifyJwt, getPublicPlaylists);
 
 export default router;

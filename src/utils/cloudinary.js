@@ -39,8 +39,6 @@ export async function uploadInCloudinary(localFilepath) {
       });
     });
 
-    // Remove the local file after upload
-    console.log("response", response);
     fs.unlinkSync(localFilepath);
     return response;
   } catch (error) {

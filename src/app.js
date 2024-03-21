@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import multer from "multer";
 import fs from "fs";
 
 const app = express();
@@ -18,6 +19,19 @@ app.use(
     ],
   })
 );
+
+app.use((err, _, res, next) => {
+  if (err instanceof multer.MulterError) {
+    if (err.file) {
+      const filePath = err.file.path;
+      fs.unlink(filePath);
+    } else {
+      res.status(400).json(new ApiResponse("error while uploading", 402, {}));
+    }
+  } else {
+    next();
+  }
+});
 
 app.use(express.json({ limit: "15kb" }));
 app.use(express.urlencoded({ extended: true, limit: "15kb" }));
@@ -50,6 +64,7 @@ import videoRouter from "../src/routes/video.routes.js";
 import likeRouter from "../src/routes/like.routes.js";
 import subscribe from "../src/routes/subscription.routes.js";
 import playlist from "../src/routes/playlist.routes.js";
+import ApiResponse from "./utils/apiResponse.js";
 
 //*routes declaration
 
@@ -63,8 +78,32 @@ app.use("/api/v1/playlist", playlist);
 
 export default app;
 
-// nodemailer at the end
-import bcrypt from "bcrypt";
-const data = await bcrypt.hash("123456789", 10);
+// app.get("/progress", (req, res) => {
+//   res.setHeader("Content-Type", "text/event-stream");
+//   res.setHeader("Cache-Control", "no-cache");
+//   res.setHeader("Connection", "keep-alive");
 
-console.log(data);
+//   const sendProgress = (percentage) => {
+//     res.write(`data: ${JSON.stringify({ progress: percentage })}\n\n`);
+//   };
+
+//   // Subscribe to progress events from Multer
+//   upload.on("progress", (bytesReceived, bytesExpected) => {
+//     const percentage = (bytesReceived / bytesExpected) * 100;
+//     sendProgress(percentage.toFixed(2));
+//   });
+// });
+
+// const eventSource = new EventSource("/progress");
+// const progressDiv = document.getElementById("progress");
+
+// eventSource.onmessage = function (event) {
+//   const data = JSON.parse(event.data);
+//   const progress = data.progress;
+//   progressDiv.innerText = `Upload progress: ${progress}%`;
+// };
+
+// eventSource.onerror = function (error) {
+//   console.error("EventSource failed:", error);
+//   eventSource.close();
+// };

@@ -1,9 +1,10 @@
 import mongoose from "mongoose";
-import { Playlist } from "../models/playlist.model.js";
 import ApiError from "../utils/apiError.js";
 import ApiResponse from "../utils/apiResponse.js";
+import { Playlist } from "../models/playlist.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
+//create a playlist
 export const initializePlaylist = asyncHandler(async (req, res) => {
   const { _id } = req.user;
   if (!_id) throw new ApiError(401, "unauthorized request");
@@ -25,6 +26,7 @@ export const initializePlaylist = asyncHandler(async (req, res) => {
     .json(new ApiResponse("playlist successfully created", 200, data));
 });
 
+// get details for a playlist
 export const getPlaylist = asyncHandler(async (req, res) => {
   const { playlistId } = req.params;
 
@@ -197,6 +199,7 @@ export const deleteVideofromPL = asyncHandler(async (req, res) => {
     );
 });
 
+//get user playlists with isExist for the video
 export const getUserPlaylists = asyncHandler(async (req, res) => {
   const { _id } = req.user;
   const { videoId } = req.params;
@@ -238,6 +241,7 @@ export const getUserPlaylists = asyncHandler(async (req, res) => {
   return res.status(200).json(new ApiResponse("your playlists", 200, data));
 });
 
+// get user playlist names only
 export const getUserPlaylistNames = asyncHandler(async (req, res) => {
   const { _id } = req.user;
   const data = await Playlist.find({ owner: _id }).select(
@@ -246,6 +250,7 @@ export const getUserPlaylistNames = asyncHandler(async (req, res) => {
   return res.status(200).json(new ApiResponse("success", 200, data));
 });
 
+//edit playlist name
 export const editPlaylistName = asyncHandler(async (req, res) => {
   const { _id } = req.user;
   const { playlistId } = req.params;
@@ -267,6 +272,7 @@ export const editPlaylistName = asyncHandler(async (req, res) => {
   return res.status(200).json(new ApiResponse("successfully updated", 200, {}));
 });
 
+//edit playlit description
 export const editDescription = asyncHandler(async (req, res) => {
   const { _id } = req.user;
   const { playlistId } = req.params;
@@ -291,6 +297,7 @@ export const editDescription = asyncHandler(async (req, res) => {
     .json(new ApiResponse("successsfully updated", 200, {}));
 });
 
+// toggle playlists public or private
 export const toggleIsPublic = asyncHandler(async (req, res) => {
   const { playlistId } = req.params;
   const obtainPlaylist =
@@ -302,4 +309,79 @@ export const toggleIsPublic = asyncHandler(async (req, res) => {
     data = await Playlist.findByIdAndUpdate(playlistId, { isPublic: true });
   }
   return res.status(200).json(new ApiResponse("success", 200, data));
+});
+
+//get all the public playlists of the user
+export const getPublicPlaylists = asyncHandler(async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
+  const { userId } = req.params;
+
+  if (!userId) throw new ApiError(404, "userId not found");
+  const match = {
+    $match: {
+      owner: new mongoose.Types.ObjectId(userId),
+      isPublic: true,
+    },
+  };
+
+  const lookUp = {
+    $lookup: {
+      from: "videos",
+      localField: "videos",
+      foreignField: "_id",
+      as: "playlistVideos",
+    },
+  };
+
+  const addField = {
+    $addFields: {
+      videosCount: {
+        $size: "$playlistVideos",
+      },
+    },
+  };
+
+  const project = {
+    $project: {
+      name: 1,
+      isPublic: 1,
+      description: 1,
+      videosCount: 1,
+      playlistVideos: {
+        $cond: {
+          if: { $isArray: "$playlistVideos" },
+          then: {
+            thumbnail: { $arrayElemAt: ["$playlistVideos.thumbnail", 0] },
+            _id: { $arrayElemAt: ["$playlistVideos._id", 0] },
+          },
+          else: "$playlistVideos",
+        },
+      },
+    },
+  };
+
+  const facetStage = {
+    $facet: {
+      metadata: [{ $count: "total" }],
+      playListVideos: [{ $skip: skip }, { $limit: limit }],
+    },
+  };
+
+  const data = await Playlist.aggregate([
+    match,
+    lookUp,
+    addField,
+    project,
+    facetStage,
+  ]);
+
+  const { metadata, playListVideos } = data[0];
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse("success", 200, { total: metadata[0], playListVideos })
+    );
 });

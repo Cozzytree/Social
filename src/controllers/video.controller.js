@@ -5,9 +5,11 @@ import ApiResponse from "../utils/apiResponse.js";
 import ApiError from "../utils/apiError.js";
 import { deleteImage } from "../utils/cloudinaryDelete.js";
 import mongoose from "mongoose";
-import { User } from "../models/user.model.js";
 import { Like } from "../models/like.model.js";
 import { Comment } from "../models/comment.model.js";
+import crypto from "crypto";
+
+const uploadStatusMap = new Map();
 
 export const uploadVideo = asyncHandler(async (req, res) => {
   //* Video file path
@@ -34,16 +36,21 @@ export const uploadVideo = asyncHandler(async (req, res) => {
   if (!thumbnail) {
     throw new ApiError(401, "please provide tumbnail");
   }
+  const uploadId = crypto.randomBytes(10).toString("hex");
+  uploadStatusMap.set(uploadId, { status: "uploading", uploadStream: null });
 
   //* upload in cloud
   const uploadVideoPromise = uploadInCloudinary(video);
   const uploadThumbnailPromise = uploadInCloudinary(thumbnail);
 
-  //* video error handle  console.log(videoUrl, thumbnailUrl);
+  //* video error handle
+
   const [videoRes, thumbnailRes] = await Promise.all([
     uploadVideoPromise,
     uploadThumbnailPromise,
-  ]);
+  ]).finally(() => {
+    uploadStatusMap.delete(uploadId);
+  });
 
   const { secure_url: videoUrl, public_id: videoId, duration } = videoRes;
   const { secure_url: thumbnailUrl, public_id: thumbnailId } = thumbnailRes;
@@ -77,6 +84,7 @@ export const uploadVideo = asyncHandler(async (req, res) => {
 
 export const deleteVideo = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
+  if (!videoId) throw new ApiError(404, "video id not found or invalid");
 
   const user = req.user;
 
@@ -85,9 +93,10 @@ export const deleteVideo = asyncHandler(async (req, res) => {
   if (user?._id !== videoData?.owner.toString()) {
     throw new ApiError(401, "not the owner");
   }
-
-  await deleteImage(videoData?.videoPublicId);
-  await deleteImage(videoData?.thumbnailPublicId);
+  const [videoResult, thumbnailResult] = await Promise.all([
+    await deleteImage(videoData?.videoPublicId, "video"),
+    await deleteImage(videoData?.thumbnailPublicId, "image"),
+  ]);
 
   const deleteVideo = await Video.findByIdAndDelete(videoId);
   await Like.deleteMany({ video: videoId });
@@ -153,6 +162,7 @@ export const getAllVideos = asyncHandler(async (req, res) => {
         videoFile: 1,
         thumbnail: 1,
         isPublished: 1,
+        createdAt: 1,
         views: 1,
         user: {
           id: "$user._id",

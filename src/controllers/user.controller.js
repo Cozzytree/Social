@@ -268,8 +268,6 @@ export const updateAccountDetails = asyncHandler(async (req, res) => {
     throw new ApiError(401, "required eamil or password to update");
   }
   let user;
-  // let user = await User.findById(req?.user._id).select("-password");
-  // if (!user) throw new ApiError(401, "unauthorized update request");
 
   if (fullName && email) {
     user = await User.findByIdAndUpdate(
