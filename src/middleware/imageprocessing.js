@@ -6,7 +6,6 @@ import fs from "fs";
 import sharp from "sharp";
 
 export const imageProcessor = asyncHandler(async (req, res, next) => {
-  console.log(req.file);
   if (req.file.mimetype === "image/png") {
     //read file stream
     const readStream = fs.createReadStream(req.file.path);
@@ -27,7 +26,6 @@ export const imageProcessor = asyncHandler(async (req, res, next) => {
       } else {
         fs.unlinkSync(req.file.path);
         req.file.path = newPathNmae;
-        console.log("Pipeline succeeded");
       }
     });
   } else {

@@ -238,6 +238,7 @@ export const getUserVideo = asyncHandler(async (req, res) => {
 
 export const getAVideo = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
+  console.log(videoId);
 
   const data = await Video.aggregate([
     {
@@ -316,12 +317,74 @@ export const updateView = asyncHandler(async (req, res) => {
 });
 
 export const rocommendedVideos = asyncHandler(async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
   const { videoId } = req.params;
+
+  const match = {
+    $match: {
+      _id: { $ne: new mongoose.Types.ObjectId(videoId) },
+    },
+  };
+
+  const lookUp = {
+    $lookup: {
+      from: "users",
+      localField: "owner",
+      foreignField: "_id",
+      as: "owner",
+    },
+  };
+
+  const unWind = {
+    $unwind: {
+      path: "$owner",
+      includeArrayIndex: "string",
+      preserveNullAndEmptyArrays: true,
+    },
+  };
+
+  const project = {
+    $project: {
+      title: 1,
+      thumbnail: 1,
+      videoFile: 1,
+      _id: 1,
+      duration: 1,
+      user: {
+        username: "$owner.username",
+        avatar: "$owner.avatar",
+        id: "$owner._id",
+      },
+    },
+  };
+
+  const facet = {
+    $facet: {
+      videos: [{ $skip: skip }, { $limit: limit }],
+      totalCount: [{ $count: "total" }],
+    },
+  };
+
+  const data = await Video.aggregate([match, lookUp, unWind, project, facet]);
+
+  const { videos, totalCount } = data[0];
+  return res
+    .status(200)
+    .json(
+      new ApiResponse("success", 200, { videos, totalCount: totalCount[0] })
+    );
+});
+
+export const searchVideo = asyncHandler(async (req, res) => {
+  const { q, filter, sort } = req.query;
+  const regex = new RegExp(q, "i");
 
   const data = await Video.aggregate([
     {
       $match: {
-        _id: { $ne: new mongoose.Types.ObjectId(videoId) },
+        title: regex,
       },
     },
     {
@@ -329,43 +392,24 @@ export const rocommendedVideos = asyncHandler(async (req, res) => {
         from: "users",
         localField: "owner",
         foreignField: "_id",
-        as: "owner",
+        as: "user",
       },
     },
-    {
-      $unwind: {
-        path: "$owner",
-        includeArrayIndex: "string",
-        preserveNullAndEmptyArrays: true,
-      },
-    },
+    { $unwind: "$user" },
     {
       $project: {
-        title: 1,
-        thumbnail: 1,
         videoFile: 1,
-        _id: 1,
         duration: 1,
+        views: 1,
+        thumbnail: 1,
+        createdAt: 1,
+        title: 1,
+        description: 1,
         user: {
-          username: "$owner.username",
-          avatar: "$owner.avatar",
-          id: "$owner._id",
+          username: "$user.username",
+          avatar: "$user.avatar",
+          _id: "$user._id",
         },
-      },
-    },
-  ]);
-
-  return res.status(200).json(new ApiResponse("success", 200, data));
-});
-
-export const searchVideo = asyncHandler(async (req, res) => {
-  const { q, filter, sort } = req.query;
-  const regex = new RegExp(q, "i");
-  console.log(regex, q);
-  const data = await Video.aggregate([
-    {
-      $match: {
-        title: regex,
       },
     },
     {

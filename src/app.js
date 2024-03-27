@@ -5,20 +5,22 @@ import multer from "multer";
 import fs from "fs";
 
 const app = express();
-app.use(
-  cors({
-    origin: "http://localhost:3001",
-    credentials: true,
-    optionsSuccessStatus: 201,
-    exposedHeaders: "Set-Cookie",
-    methods: ["GET", "PUT", "POST", "DELETE", "OPTIONS", "PATCH"],
-    allowedHeaders: [
-      "Access-Control-Allow-Origin",
-      "Content-Type",
-      "Authorization",
-    ],
-  })
-);
+
+const corsOptions = {
+  origin: "http://localhost:5173",
+  credentials: true,
+  optionsSuccessStatus: 201,
+  exposedHeaders: "Set-Cookie",
+  methods: ["GET", "PUT", "POST", "DELETE", "OPTIONS", "PATCH"],
+  // allowedHeaders: "*",
+  allowedHeaders: [
+    "Access-Control-Allow-Origin",
+    "Content-Type",
+    "Authorization",
+  ],
+};
+
+app.use(cors(corsOptions));
 
 app.use((err, _, res, next) => {
   if (err instanceof multer.MulterError) {

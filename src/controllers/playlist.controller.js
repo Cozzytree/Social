@@ -45,6 +45,12 @@ export const getPlaylist = asyncHandler(async (req, res) => {
       },
     },
     {
+      $unwind: {
+        path: "$user",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
       $lookup: {
         from: "videos",
         localField: "videos",
@@ -72,16 +78,11 @@ export const getPlaylist = asyncHandler(async (req, res) => {
               thumbnail: 1,
               _id: 1,
               owner: 1,
+              views: 1,
+              createdAt: 1,
             },
           },
         ],
-      },
-    },
-
-    {
-      $unwind: {
-        path: "$user",
-        preserveNullAndEmptyArrays: true,
       },
     },
     {
@@ -117,6 +118,9 @@ export const getPlaylist = asyncHandler(async (req, res) => {
         playlistV: {
           videosFile: "$playlistV.videoFile",
           thumbnail: "$playlistV.thumbnail",
+          description: "$playlistV.description",
+          views: "$playlistV.views",
+          createdAt: "$playlistV.createdAt",
           duration: "$playlistV.duration",
           _id: "$playlistV._id",
           title: "$playlistV.title",
@@ -312,73 +316,74 @@ export const toggleIsPublic = asyncHandler(async (req, res) => {
 });
 
 //get all the public playlists of the user
-export const getPublicPlaylists = asyncHandler(async (req, res) => {
+export const getPplaylist = asyncHandler(async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
   const skip = (page - 1) * limit;
   const { userId } = req.params;
 
   if (!userId) throw new ApiError(404, "userId not found");
-  const match = {
-    $match: {
-      owner: new mongoose.Types.ObjectId(userId),
-      isPublic: true,
-    },
-  };
 
-  const lookUp = {
-    $lookup: {
-      from: "videos",
-      localField: "videos",
-      foreignField: "_id",
-      as: "playlistVideos",
-    },
-  };
-
-  const addField = {
-    $addFields: {
-      videosCount: {
-        $size: "$playlistVideos",
+  const data = await Playlist.aggregate([
+    {
+      $match: {
+        owner: new mongoose.Types.ObjectId(userId),
+        isPublic: true,
       },
     },
-  };
-
-  const project = {
-    $project: {
-      name: 1,
-      isPublic: 1,
-      description: 1,
-      videosCount: 1,
-      playlistVideos: {
-        $cond: {
-          if: { $isArray: "$playlistVideos" },
-          then: {
-            thumbnail: { $arrayElemAt: ["$playlistVideos.thumbnail", 0] },
-            _id: { $arrayElemAt: ["$playlistVideos._id", 0] },
-          },
-          else: "$playlistVideos",
+    {
+      $lookup: {
+        from: "videos",
+        localField: "videos",
+        foreignField: "_id",
+        as: "playlistVideos",
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "owner",
+      },
+    },
+    {
+      $addFields: {
+        videosCount: {
+          $size: "$playlistVideos",
         },
       },
     },
-  };
-
-  const facetStage = {
-    $facet: {
-      metadata: [{ $count: "total" }],
-      playListVideos: [{ $skip: skip }, { $limit: limit }],
+    {
+      $project: {
+        name: 1,
+        isPublic: 1,
+        description: 1,
+        videosCount: 1,
+        owner: {
+          username: "$owner.username",
+        },
+        playlistVideos: {
+          $cond: {
+            if: { $isArray: "$playlistVideos" },
+            then: {
+              thumbnail: { $arrayElemAt: ["$playlistVideos.thumbnail", 0] },
+              _id: { $arrayElemAt: ["$playlistVideos._id", 0] },
+            },
+            else: "$playlistVideos",
+          },
+        },
+      },
     },
-  };
-
-  const data = await Playlist.aggregate([
-    match,
-    lookUp,
-    addField,
-    project,
-    facetStage,
+    {
+      $facet: {
+        metadata: [{ $count: "total" }],
+        playListVideos: [{ $skip: skip }, { $limit: limit }],
+      },
+    },
   ]);
 
   const { metadata, playListVideos } = data[0];
-
   return res
     .status(200)
     .json(
