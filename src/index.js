@@ -8,19 +8,19 @@ dontenv.config();
 function startServer() {
   connectDB()
     .then(() => {
-      app.listen(process.env.PORT || 3000, () => {
+      app.listen(process.env.PORT || 8000, () => {
         console.log(
           `Server is running at http://localhost:${process.env.PORT}, ${process.pid}`
         );
       });
 
-      app.on("error", (err) => {
-        console.error(err);
-      });
+      // app.on("error", (err) => {
+      //   console.error ( "what error"+err);
+      // });
     })
     .catch((err) => {
       console.error("MongoDB connection failed", err);
-      if (err) return startServer();
+      // if (err) return startServer();
     });
 }
 

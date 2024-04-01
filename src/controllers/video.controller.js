@@ -192,6 +192,8 @@ export const getAllVideos = asyncHandler(async (req, res) => {
     },
   ]);
 
+  console.log(data);
+
   return res.status(200).json(new ApiResponse("hehe", 200, data[0]));
 });
 
