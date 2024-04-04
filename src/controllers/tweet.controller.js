@@ -4,6 +4,8 @@ import { Tweet } from "../models/tweet.model.js";
 import ApiError from "../utils/apiError.js";
 import ApiResponse from "../utils/apiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { ObjectId } from "mongodb";
+import { User } from "../models/user.model.js";
 
 //* Add tweet
 export const postTweet = asyncHandler(async (req, res) => {
@@ -204,9 +206,11 @@ export const getUserTweet = asyncHandler(async (req, res) => {
     throw new ApiError(404, "database error while retrieving data");
   }
 
+  const { data: tweets, totalCount } = data[0];
+
   return res
     .status(200)
-    .json(new ApiResponse("Here are the tweets", 200, data));
+    .json(new ApiResponse("Here are the tweets", 200, { tweets, totalCount }));
 });
 
 // get a tweet
@@ -277,4 +281,125 @@ export const getAtweet = asyncHandler(async (req, res) => {
   ]);
 
   return res.status(200).json(new ApiResponse("success", 200, data[0]));
+});
+
+export const getCurrentUserTweets = asyncHandler(async (req, res) => {
+  const page = parseInt(req?.query?.page, 10) || 1;
+  const limit = parseInt(req?.query?.limit, 10) || 10;
+  const skip = +(page - 1) * 10;
+  const { _id } = req?.user;
+
+  const tweets = await Tweet.aggregate([
+    {
+      $match: {
+        owner: new ObjectId(_id),
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "ownerInfo",
+      },
+    },
+    {
+      $lookup: {
+        from: "likes",
+        localField: "_id",
+        foreignField: "tweet",
+        as: "totalLikes",
+      },
+    },
+    {
+      $lookup: {
+        from: "comments",
+        localField: "_id",
+        foreignField: "tweet",
+        as: "totalComments",
+      },
+    },
+    {
+      $addFields: {
+        totalLikesCount: { $size: "$totalLikes" },
+        totalCommentsCount: { $size: "$totalComments" },
+      },
+    },
+    { $unwind: "$ownerInfo" },
+    {
+      $project: {
+        createdAt: 1,
+        updatedAt: 1,
+        content: 1,
+        isLiked: {
+          $cond: {
+            if: {
+              $in: [req?.user?._id || "", "$totalLikes.likedBy"],
+            },
+            then: true,
+            else: false,
+          },
+        },
+        tweets: 1,
+        totalLikesCount: 1,
+        totalCommentsCount: 1,
+        ownerInfo: { _id: 1, username: 1, avatar: 1 },
+      },
+    },
+    {
+      $facet: {
+        paginated: [{ $skip: skip }, { $limit: limit }],
+        totalCount: [{ $count: "total" }],
+      },
+    },
+  ]);
+
+  const user = await User.aggregate([
+    {
+      $match: { _id: new ObjectId(_id) },
+    },
+    {
+      $lookup: {
+        from: "subscriptions",
+        localField: "_id",
+        foreignField: "channel",
+        as: "subbs",
+      },
+    },
+    {
+      $lookup: {
+        from: "videos",
+        localField: "_id",
+        foreignField: "owner",
+        as: "videos",
+      },
+    },
+    {
+      $addFields: {
+        totalSubbs: { $size: "$subbs" },
+        totalVideos: { $size: "$videos" },
+      },
+    },
+    {
+      $project: {
+        totalVideos: 1,
+        totalSubbs: 1,
+        username: 1,
+        avatar: 1,
+        coverImage: 1,
+        _id: 1,
+        bio: 1,
+      },
+    },
+  ]);
+
+  const { paginated, totalCount } = tweets[0];
+
+  return res.status(200).json(
+    new ApiResponse("success", 200, {
+      paginated,
+      totalCount: totalCount[0],
+      user: user[0],
+    })
+  );
 });

@@ -11,6 +11,7 @@ import {
   uploadVideo,
   rocommendedVideos,
   searchVideo,
+  getCurrentUserVideos,
 } from "../controllers/video.controller.js";
 import { upload } from "../middleware/multer.middleware.js";
 import { imageProcessor } from "../middleware/imageprocessing.js";
@@ -42,5 +43,6 @@ router.route("/:videoId").get(mildJwt, getAVideo);
 router.route("/addView/:videoId").patch(updateView);
 router.route("/recommends/:videoId").get(rocommendedVideos);
 router.route("/s/query").get(searchVideo);
+router.route("/cu/currentUserVideos").get(verifyJwt, getCurrentUserVideos);
 
 export default router;

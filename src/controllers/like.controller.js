@@ -3,6 +3,7 @@ import { Like } from "../models/like.model.js";
 import ApiError from "../utils/apiError.js";
 import ApiResponse from "../utils/apiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { ObjectId } from "mongodb";
 
 const toggleVideoLike = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
@@ -79,15 +80,19 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
 });
 
 const getLikedVideos = asyncHandler(async (req, res) => {
+  const page = parseInt(req.query.page, 10) || 1;
+  const limit = parseInt(req.query.limit, 10) || 5;
+  const skip = (page - 1) * limit;
   const { _id } = req.user;
-  if (!id) {
+  if (!_id) {
     throw new ApiError(401, "unauthorized request");
   }
 
   const data = await Like.aggregate([
     {
       $match: {
-        likedBy: new mongoose.Types.ObjectId(_id),
+        likedBy: new ObjectId(_id),
+        video: { $exists: true },
       },
     },
     {
@@ -99,33 +104,53 @@ const getLikedVideos = asyncHandler(async (req, res) => {
       },
     },
     {
-      $unwind: "$likedVideos",
-    },
-    {
       $lookup: {
         from: "users",
         localField: "likedVideos.owner",
         foreignField: "_id",
-        as: "ownerInfo",
+        as: "owner",
+      },
+    },
+    {
+      $unwind: {
+        path: "$owner",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $unwind: {
+        path: "$likedVideos",
+        preserveNullAndEmptyArrays: true,
       },
     },
     {
       $project: {
-        _id: 1,
-        video: 1,
-        likedBy: 1,
-        "likedVideos.videoFile": 1,
-        "likedVideos.thumbnail": 1,
-        "likedVideos.title": 1,
-        "likedVideos.views": 1,
-        "likedVideos.createdAt": 1,
-        "ownerInfo.username": 1,
+        _id: "$likedVideos._id",
+        title: "$likedVideos.title",
+        duration: "$likedVideos.duration",
+        thumbnail: "$likedVideos.thumbnail",
+        videoFile: "$likedVideos.videoFile",
+        views: "$likedVideos.views",
+        createdAt: "$likedVideos.createdAt",
+        user: {
+          username: "$owner.username",
+          avatar: "$owner.avatar",
+          _id: "$owner._id",
+        },
+      },
+    },
+    {
+      $facet: {
+        videos: [{ $limit: limit }, { $skip: skip }],
+        count: [{ $count: "count" }],
       },
     },
   ]);
-  if (!data) throw new ApiError(501, "error while fetching");
-
-  return res.status(200).json(new ApiResponse("here we are", 200, data));
+  if (!data) throw new ApiError(404, "no videos found");
+  const { videos, count } = data[0];
+  return res
+    .status(200)
+    .json(new ApiResponse("success", 200, { videos, count: count[0] }));
 });
 
 const totalVideoLikes = asyncHandler(async (req, res) => {

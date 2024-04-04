@@ -5,6 +5,7 @@ import { DB_NAME } from "../constants.js";
 dotenv.config();
 
 const uri = process.env.MONGODB_URL;
+console.log(uri);
 const clientOptions = { serverApi: { version: '1', strict: true, deprecationErrors: true } };
 
 

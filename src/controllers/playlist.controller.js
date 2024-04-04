@@ -3,6 +3,7 @@ import ApiError from "../utils/apiError.js";
 import ApiResponse from "../utils/apiResponse.js";
 import { Playlist } from "../models/playlist.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { ObjectId } from "mongodb";
 
 //create a playlist
 export const initializePlaylist = asyncHandler(async (req, res) => {
@@ -384,4 +385,57 @@ export const getPublicPlaylists = asyncHandler(async (req, res) => {
     .json(
       new ApiResponse("success", 200, { total: metadata[0], playListVideos })
     );
+});
+
+//get current user playlist
+export const currentUserPlaylists = asyncHandler(async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
+  const { _id } = req.user;
+
+  const data = await Playlist.aggregate([
+    {
+      $match: {
+        owner: ObjectId(_id),
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "playlistOwner",
+      },
+    },
+    {
+      $lookup: {
+        from: "videos",
+        localField: "videos",
+        foreignField: "_id",
+        as: "playlistVideos",
+      },
+    },
+    {
+      $project: {
+        name: 1,
+        description: 1,
+        createdAt: 1,
+        isPublic: 1,
+        thumbnail: { $arrayElemAt: ["$playlistVideos.thumbnail", 0] },
+      },
+    },
+    {
+      $facet: {
+        total: [{ $count: "total" }],
+        playlist: [{ $skip: skip }, { $limit: limit }],
+      },
+    },
+  ]);
+
+  const { playlist, total } = data[0];
+
+  return res
+    .status(200)
+    .json(new ApiResponse("success", 200, { playlist, total }));
 });

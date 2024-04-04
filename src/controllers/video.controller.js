@@ -1,13 +1,15 @@
+import ApiResponse from "../utils/apiResponse.js";
+import ApiError from "../utils/apiError.js";
+import mongoose from "mongoose";
+import crypto from "crypto";
 import { Video } from "../models/video.model.js";
 import { uploadInCloudinary } from "../utils/cloudinary.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import ApiResponse from "../utils/apiResponse.js";
-import ApiError from "../utils/apiError.js";
 import { deleteImage } from "../utils/cloudinaryDelete.js";
-import mongoose from "mongoose";
-import { Like } from "../models/like.model.js";
 import { Comment } from "../models/comment.model.js";
-import crypto from "crypto";
+import { ObjectId } from "mongodb";
+import { Like } from "../models/like.model.js";
+import { User } from "../models/user.model.js";
 
 const uploadStatusMap = new Map();
 
@@ -192,8 +194,6 @@ export const getAllVideos = asyncHandler(async (req, res) => {
     },
   ]);
 
-  console.log(data);
-
   return res.status(200).json(new ApiResponse("hehe", 200, data[0]));
 });
 
@@ -375,4 +375,96 @@ export const searchVideo = asyncHandler(async (req, res) => {
     },
   ]);
   return res.status(200).json(new ApiResponse("success", 200, data));
+});
+
+// currennt user videos
+export const getCurrentUserVideos = asyncHandler(async (req, res) => {
+  const page = parseInt(req?.query?.page, 10) || 1;
+  const limit = parseInt(req?.query?.limit, 10) || 10;
+  const { createdAt } = req.query;
+  const skip = +(page - 1) * 10;
+  const { _id } = req?.user;
+
+  const data = await Video.aggregate([
+    {
+      $match: {
+        owner: new ObjectId(_id),
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "owner",
+      },
+    },
+    {
+      $unwind: "$owner",
+    },
+    {
+      $project: {
+        videoFile: 1,
+        thumbnail: 1,
+        duration: 1,
+        views: 1,
+        createdAt: 1,
+        title: 1,
+        user: {
+          avatar: "$owner.avatar",
+          username: "$owner.username",
+          _id: "$owner._id",
+        },
+      },
+    },
+    {
+      $sort: { title: 1 },
+    },
+    {
+      $facet: {
+        videos: [{ $limit: limit }, { $skip: skip }],
+        count: [{ $count: "count" }],
+      },
+    },
+  ]);
+  const user = await User.aggregate([
+    {
+      $match: { _id: new ObjectId(_id) },
+    },
+    {
+      $lookup: {
+        from: "subscriptions",
+        localField: "_id",
+        foreignField: "channel",
+        as: "subbs",
+      },
+    },
+    {
+      $addFields: {
+        totalSubbs: { $size: "$subbs" },
+      },
+    },
+    {
+      $project: {
+        totalSubbs: 1,
+        username: 1,
+        avatar: 1,
+        coverImage: 1,
+        _id: 1,
+        bio: 1,
+      },
+    },
+  ]);
+
+  const { videos, count } = data[0];
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse("success", 200, {
+        videos,
+        count: count[0],
+        user: user[0],
+      })
+    );
 });

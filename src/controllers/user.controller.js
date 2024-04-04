@@ -3,7 +3,6 @@ import ApiResponse from "../utils/apiResponse.js";
 import ApiError from "../utils/apiError.js";
 import { User } from "../models/user.model.js";
 import { uploadInCloudinary } from "../utils/cloudinary.js";
-import jwt from "jsonwebtoken";
 import { deleteImage } from "../utils/cloudinaryDelete.js";
 import mongoose from "mongoose";
 import nodemailer from "nodemailer";
@@ -122,7 +121,6 @@ export const registerUser = asyncHandler(async (req, res) => {
 //..........................login user ........................
 export const loginUser = asyncHandler(async (req, res) => {
   const { email, password, username } = req.body;
-  console.log(email, password);
 
   // Check if email or username is recieved
   if (!email && !username) {

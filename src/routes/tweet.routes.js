@@ -5,6 +5,7 @@ import {
   editTweet,
   getAllTweet,
   getAtweet,
+  getCurrentUserTweets,
   getUserTweet,
   postTweet,
 } from "../controllers/tweet.controller.js";
@@ -17,5 +18,6 @@ router.route("/d/:tweetId").delete(verifyJwt, deleteTweet);
 router.route("/editTweet/:tweetId").patch(verifyJwt, editTweet);
 router.route("/at").get(mildJwt, getAllTweet);
 router.route("/user_t/:userId").get(mildJwt, getUserTweet);
+router.route("/cu/getCurrentUserTweets").get(verifyJwt, getCurrentUserTweets);
 
 export default router;
