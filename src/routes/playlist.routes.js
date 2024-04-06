@@ -17,7 +17,7 @@ import {
 const router = Router();
 
 router.route("/getAplaylist/:playlistId").get(verifyJwt, getPlaylist);
-router.route("/currentUserPlaylists").get(verifyJwt , currentUserPlaylists)
+router.route("/cu/currentUserPlaylists").get(verifyJwt , currentUserPlaylists)
 router.route("/getPlaylists/:videoId").get(verifyJwt, getUserPlaylists);
 router.route("/getPlaylistNames").get(verifyJwt, getUserPlaylistNames);
 router.route("/createPlaylist").put(verifyJwt, initializePlaylist);

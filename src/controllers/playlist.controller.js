@@ -4,6 +4,7 @@ import ApiResponse from "../utils/apiResponse.js";
 import { Playlist } from "../models/playlist.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ObjectId } from "mongodb";
+import { User } from "../models/user.model.js";
 
 //create a playlist
 export const initializePlaylist = asyncHandler(async (req, res) => {
@@ -162,7 +163,7 @@ export const addVideoToPlaylist = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .json(new ApiResponse("video added successfully", 200, data));
+    .json(new ApiResponse(`added to ${data?.name}`, 200, data));
 });
 
 export const deletePlaylist = asyncHandler(async (req, res) => {
@@ -195,9 +196,7 @@ export const deleteVideofromPL = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .json(
-      new ApiResponse("video successfully removed from the playlist", 200, {})
-    );
+    .json(new ApiResponse(`removed from ${data?.name}`, 200, {}));
 });
 
 //get user playlists with isExist for the video
@@ -397,7 +396,7 @@ export const currentUserPlaylists = asyncHandler(async (req, res) => {
   const data = await Playlist.aggregate([
     {
       $match: {
-        owner: ObjectId(_id),
+        owner: new ObjectId(_id),
       },
     },
     {
@@ -433,9 +432,52 @@ export const currentUserPlaylists = asyncHandler(async (req, res) => {
     },
   ]);
 
+  const user = await User.aggregate([
+    {
+      $match: { _id: new ObjectId(_id) },
+    },
+    {
+      $lookup: {
+        from: "subscriptions",
+        localField: "_id",
+        foreignField: "channel",
+        as: "subbs",
+      },
+    },
+    {
+      $lookup: {
+        from: "videos",
+        localField: "_id",
+        foreignField: "owner",
+        as: "videos",
+      },
+    },
+    {
+      $addFields: {
+        totalSubbs: { $size: "$subbs" },
+        totalVideos: { $size: "$videos" },
+      },
+    },
+    {
+      $project: {
+        totalVideos: 1,
+        totalSubbs: 1,
+        username: 1,
+        avatar: 1,
+        coverImage: 1,
+        _id: 1,
+        bio: 1,
+      },
+    },
+  ]);
+
   const { playlist, total } = data[0];
 
-  return res
-    .status(200)
-    .json(new ApiResponse("success", 200, { playlist, total }));
+  return res.status(200).json(
+    new ApiResponse("success", 200, {
+      playlist,
+      total: total[0],
+      user: user[0],
+    })
+  );
 });
