@@ -35,6 +35,11 @@ const usersSchema = new Schema(
       type: Object,
       default: null,
     },
+    resetPasswordTokem: {
+      type: String,
+      default: null,
+    },
+    resetPasswordExpires: { type: Date, default: null },
   },
   { timestamps: true }
 );

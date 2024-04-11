@@ -2,6 +2,7 @@ import ApiResponse from "../utils/apiResponse.js";
 import ApiError from "../utils/apiError.js";
 import mongoose from "mongoose";
 import crypto from "crypto";
+import { tokens } from "../middleware/tokenBucket.js";
 import { Video } from "../models/video.model.js";
 import { uploadInCloudinary } from "../utils/cloudinary.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -15,6 +16,9 @@ const uploadStatusMap = new Map();
 
 export const uploadVideo = asyncHandler(async (req, res) => {
   //* Video file path
+  if (!req.token) {
+    return res.status(503).json(new ApiResponse("server busy", 503, {}));
+  }
   const { title, description } = req.body;
   let video, thumbnail;
   if (req.files?.videoFile) {
@@ -75,6 +79,8 @@ export const uploadVideo = asyncHandler(async (req, res) => {
     thumbnail: thumbnailUrl,
     owner: _id,
   });
+
+  if (tokens.length < 20) tokens.push(crypto.randomBytes(10).toString("hex"));
 
   //* check if document is created
   if (!data) throw new ApiError(404, "video not found");
@@ -240,7 +246,6 @@ export const getUserVideo = asyncHandler(async (req, res) => {
 
 export const getAVideo = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
-
   const data = await Video.aggregate([
     {
       $match: {
@@ -264,7 +269,29 @@ export const getAVideo = asyncHandler(async (req, res) => {
       },
     },
     {
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "videoOwner",
+      },
+    },
+    {
+      $unwind: "$videoOwner",
+    },
+    {
+      $lookup: {
+        from: "subscriptions",
+        localField: "videoOwner._id",
+        foreignField: "channel",
+        as: "subscribers",
+      },
+    },
+    {
       $addFields: {
+        totalSubscribers: {
+          $size: "$subscribers",
+        },
         totalComments: {
           $size: "$videoComments",
         },
@@ -277,6 +304,13 @@ export const getAVideo = asyncHandler(async (req, res) => {
       $project: {
         _id: 1,
         createdAt: 1,
+        isSubscribed: {
+          $cond: {
+            if: { $in: [req?.user?._id || "", "$subscribers.subscriber"] },
+            then: true,
+            else: false,
+          },
+        },
         isLiked: {
           $cond: {
             if: { $in: [req?.user?._id || "", "$videoLikes.likedBy"] },
@@ -284,15 +318,18 @@ export const getAVideo = asyncHandler(async (req, res) => {
             else: false,
           },
         },
-        owner: 1,
+        owner: {
+          username: "$videoOwner.username",
+          avatar: "$videoOwner.avatar",
+          _id: "$videoOwner._id",
+        },
+        totalSubscribers: 1,
         thumbnail: 1,
-        thumbnailPublicId: 1,
         title: 1,
         description: 1,
         duration: 1,
         updatedAt: 1,
         videoFile: 1,
-        videoPublicId: 1,
         views: 1,
         totalComments: 1,
         totalLikes: 1,
@@ -458,13 +495,11 @@ export const getCurrentUserVideos = asyncHandler(async (req, res) => {
 
   const { videos, count } = data[0];
 
-  return res
-    .status(200)
-    .json(
-      new ApiResponse("success", 200, {
-        videos,
-        count: count[0],
-        user: user[0],
-      })
-    );
+  return res.status(200).json(
+    new ApiResponse("success", 200, {
+      videos,
+      count: count[0],
+      user: user[0],
+    })
+  );
 });

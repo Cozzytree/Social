@@ -19,6 +19,12 @@ const commentsSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "User",
     },
+    replies: [
+      {
+        owner: { type: Schema.Types.ObjectId, ref: "User" },
+        content: { type: String, required: true },
+      },
+    ],
   },
   { timestamps: true }
 );

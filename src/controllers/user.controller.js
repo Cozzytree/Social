@@ -1,6 +1,7 @@
-import { asyncHandler } from "../utils/asyncHandler.js";
 import ApiResponse from "../utils/apiResponse.js";
 import ApiError from "../utils/apiError.js";
+import crypto from "crypto";
+import { asyncHandler } from "../utils/asyncHandler.js";
 import { User } from "../models/user.model.js";
 import { uploadInCloudinary } from "../utils/cloudinary.js";
 import { deleteImage } from "../utils/cloudinaryDelete.js";
@@ -30,7 +31,13 @@ const sendEmail = async (to, subject, text) => {
     text,
   };
 
-  const info = await transporter.sendMail(mailOptions);
+  const info = await transporter
+    .sendMail(mailOptions)
+    .then((data) => data)
+    .catch((err) => {
+      console.log(err);
+      if (err) throw new ApiError(502, "unable to send email");
+    });
   console.log("Email sent: " + info.response);
   transporter.close();
 };
@@ -653,4 +660,44 @@ export const deleteLinkFromBio = asyncHandler(async (req, res) => {
   );
 
   return res.status(200).json(new ApiResponse("successfully removed", 200, {}));
+});
+
+export const forgotPassword = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+  if (!email) throw new ApiError(404, "no email was found");
+  const token = crypto.randomBytes(10).toString("hex");
+  const user = await User.findOneAndUpdate(
+    { email },
+    {
+      resetPasswordTokem: token,
+      resetPasswordExpires: Date.now() + 3600000,
+    }
+  );
+  if (!user) throw new ApiError(404, "email not found");
+
+  await sendEmail(
+    email,
+    "Reset Password",
+    `<a href="http://localhost:3000/reset_password/${token}">Click here to reset your password</a>`
+  );
+  return res.status(200).json(new ApiResponse("verify email", 200, {}));
+});
+
+export const resetPassword = asyncHandler(async (req, res) => {
+  const { token, password } = req.body;
+  if (!token || !password) throw new ApiError("invalid token");
+  const user = await User.findOne({
+    resetPasswordTokem: token,
+    resetPasswordExpires: { $gt: Date.now() },
+  });
+
+  if (!user)
+    throw new ApiError(400, "Password reset token is invalid or has expired");
+
+  user.password = password;
+  user.resetPasswordToken = null;
+  user.resetPasswordExpires = null;
+  await user.save({ validateBeforeSave: false });
+
+  return res.redirect("http://localhost:3000/login");
 });

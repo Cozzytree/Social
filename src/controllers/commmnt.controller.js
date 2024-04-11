@@ -1,7 +1,7 @@
-import mongoose, { Mongoose } from "mongoose";
-import { Comment } from "../models/comment.model.js";
+import mongoose from "mongoose";
 import ApiError from "../utils/apiError.js";
 import ApiResponse from "../utils/apiResponse.js";
+import { Comment } from "../models/comment.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
 const getVideoComments = asyncHandler(async (req, res) => {
@@ -23,11 +23,36 @@ const getVideoComments = asyncHandler(async (req, res) => {
     },
     { $unwind: "$user" },
     {
+      $lookup: {
+        from: "likes",
+        localField: "_id",
+        foreignField: "comment",
+        as: "commentLikes",
+      },
+    },
+    {
+      $addFields: {
+        totalCommentLikes: {
+          $size: "$commentLikes",
+        },
+      },
+    },
+    {
       $project: {
         createdAt: 1,
         updatedAt: 1,
         username: 1,
         content: 1,
+        isLiked: {
+          $cond: {
+            if: {
+              $in: [req?.user?._id || "", "$commentLikes.likedBy"],
+            },
+            then: true,
+            else: false,
+          },
+        },
+        totalCommentLikes: 1,
         "user.username": 1,
         "user._id": 1,
         "user.avatar": 1,
@@ -107,6 +132,21 @@ const getTweetComments = asyncHandler(async (req, res) => {
     },
     {
       $lookup: {
+        from: "likes",
+        localField: "_id",
+        foreignField: "comment",
+        as: "commentLikes",
+      },
+    },
+    {
+      $addFields: {
+        totalCommentsLikes: {
+          $size: "$commentLikes",
+        },
+      },
+    },
+    {
+      $lookup: {
         from: "users",
         localField: "owner",
         foreignField: "_id",
@@ -116,6 +156,16 @@ const getTweetComments = asyncHandler(async (req, res) => {
     { $unwind: "$user" },
     {
       $project: {
+        totalCommentsLikes: 1,
+        isLiked: {
+          $cond: {
+            if: {
+              $in: [req?.user?._id || "", "$commentLikes.likedBy"],
+            },
+            then: true,
+            else: false,
+          },
+        },
         createdAt: 1,
         updatedAt: 1,
         username: 1,
@@ -178,7 +228,17 @@ const updateTweetComment = asyncHandler(async (req, res) => {
     .json(new ApiResponse("successfully update", 200, data));
 });
 
+const replyComment = asyncHandler(async (req, res) => {
+  const { commentId, content } = req.params;
+  const updatedComment = await Comment.findByIdAndUpdate(
+    commentId,
+    { $push: { comments: content, owner: req.user._id } },
+    { new: true }
+  );
+});
+
 export {
+  replyComment,
   getVideoComments,
   getTweetComments,
   addTweetComment,

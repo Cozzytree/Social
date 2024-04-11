@@ -19,6 +19,8 @@ import {
   updateBioText,
   addLinksInBio,
   deleteLinkFromBio,
+  forgotPassword,
+  resetPassword,
 } from "../controllers/user.controller.js";
 import { upload } from "../middleware/multer.middleware.js";
 import { mildJwt, verifyJwt } from "../middleware/auth.middleware.js";
@@ -56,5 +58,7 @@ router.route("/ud/user_details").get(verifyJwt, settings);
 router.route("/updateBioText").post(verifyJwt, updateBioText);
 router.route("/addLinkToBio").post(verifyJwt, addLinksInBio);
 router.route("/deleteLinkfromBio/:linkId").delete(verifyJwt, deleteLinkFromBio);
+router.route("/forgot_password").post(forgotPassword);
+router.route("/reset_password").post(resetPassword);
 
 export default router;

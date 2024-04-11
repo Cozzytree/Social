@@ -1,5 +1,7 @@
 import { Router } from "express";
 import { mildJwt, verifyJwt } from "../middleware/auth.middleware.js";
+import { checkTokenExists } from "../middleware/tokenBucket.js";
+
 import {
   deleteVideo,
   getAVideo,
@@ -19,6 +21,7 @@ import { imageProcessor } from "../middleware/imageprocessing.js";
 const router = Router();
 
 router.route("/upload").post(
+  checkTokenExists,
   verifyJwt,
   upload.fields([
     { name: "videoFile", maxCount: 1 },
