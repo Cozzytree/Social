@@ -68,6 +68,7 @@ export const getPlaylist = asyncHandler(async (req, res) => {
           },
           {
             $project: {
+              views: 1,
               duration: 1,
               title: 1,
               videoFile: 1,
@@ -79,7 +80,6 @@ export const getPlaylist = asyncHandler(async (req, res) => {
         ],
       },
     },
-
     {
       $unwind: {
         path: "$user",
@@ -117,6 +117,7 @@ export const getPlaylist = asyncHandler(async (req, res) => {
           avatar: "$ownerDetails.avatar",
         },
         playlistV: {
+          views: "$playlistV.views",
           videosFile: "$playlistV.videoFile",
           thumbnail: "$playlistV.thumbnail",
           duration: "$playlistV.duration",

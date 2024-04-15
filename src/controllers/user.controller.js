@@ -35,10 +35,8 @@ const sendEmail = async (to, subject, text) => {
     .sendMail(mailOptions)
     .then((data) => data)
     .catch((err) => {
-      console.log(err);
       if (err) throw new ApiError(502, "unable to send email");
     });
-  console.log("Email sent: " + info.response);
   transporter.close();
 };
 
@@ -165,7 +163,7 @@ export const loginUser = asyncHandler(async (req, res) => {
     path: "/",
   };
 
-  return res
+  res
     .status(200)
     .cookie("accessToken", accessToken, options)
     .cookie("refreshToken", refreshToken, options)
@@ -175,7 +173,7 @@ export const loginUser = asyncHandler(async (req, res) => {
         accessToken,
         refreshToken,
       })
-    );
+    )
 });
 
 //*......................... log out user........................
@@ -687,11 +685,11 @@ export const resetPassword = asyncHandler(async (req, res) => {
   const { token, password } = req.body;
   if (!token || !password) throw new ApiError("invalid token");
   const user = await User.findOne({
-    resetPasswordTokem: token,
+    resetPasswordToken: token,
     resetPasswordExpires: { $gt: Date.now() },
   });
 
-  if (!user)
+  if (!user.resetPasswordToken || !user.resetPasswordExpires)
     throw new ApiError(400, "Password reset token is invalid or has expired");
 
   user.password = password;

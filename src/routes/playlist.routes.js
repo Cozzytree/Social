@@ -17,7 +17,7 @@ import {
 const router = Router();
 
 router.route("/getAplaylist/:playlistId").get(verifyJwt, getPlaylist);
-router.route("/cu/currentUserPlaylists").get(verifyJwt , currentUserPlaylists)
+router.route("/cu/currentUserPlaylists").get(verifyJwt, currentUserPlaylists);
 router.route("/getPlaylists/:videoId").get(verifyJwt, getUserPlaylists);
 router.route("/getPlaylistNames").get(verifyJwt, getUserPlaylistNames);
 router.route("/createPlaylist").put(verifyJwt, initializePlaylist);
@@ -36,6 +36,6 @@ router
 
 router.route("/editDescription/:playlistId").patch(verifyJwt, editDescription);
 router.route("/togglePublic/:playlistId").patch(verifyJwt, toggleIsPublic);
-router.route("/publicPlaylist/:userId").get(verifyJwt, getPublicPlaylists);
+router.route("/publicPlaylist/:userId").get(getPublicPlaylists);
 
 export default router;

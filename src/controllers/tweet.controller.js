@@ -263,7 +263,7 @@ export const getAtweet = asyncHandler(async (req, res) => {
         content: 1,
         isLiked: {
           $cond: {
-            if: { $in: [req?.user?._id , "$totalLikes.likedBy"] },
+            if: { $in: [req?.user?._id, "$totalLikes.likedBy"] },
             then: true,
             else: false,
           },
@@ -334,7 +334,7 @@ export const getCurrentUserTweets = asyncHandler(async (req, res) => {
         isLiked: {
           $cond: {
             if: {
-              $in: [req?.user?._id || "", "$totalLikes.likedBy"],
+              $in: [new ObjectId(_id), "$totalLikes.likedBy"],
             },
             then: true,
             else: false,
@@ -392,7 +392,6 @@ export const getCurrentUserTweets = asyncHandler(async (req, res) => {
       },
     },
   ]);
-
 
   const { paginated, totalCount } = tweets[0];
 

@@ -35,7 +35,7 @@ const usersSchema = new Schema(
       type: Object,
       default: null,
     },
-    resetPasswordTokem: {
+    resetPasswordToken: {
       type: String,
       default: null,
     },

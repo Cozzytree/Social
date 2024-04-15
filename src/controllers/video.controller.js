@@ -356,6 +356,9 @@ export const updateView = asyncHandler(async (req, res) => {
 
 export const rocommendedVideos = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
+  const page = parseInt(req.query.page, 10) || 1;
+  const limit = parseInt(req.query.limit, 10) || 10;
+  const skip = (page - 1) * limit;
 
   const data = await Video.aggregate([
     {
@@ -385,6 +388,7 @@ export const rocommendedVideos = asyncHandler(async (req, res) => {
         videoFile: 1,
         _id: 1,
         duration: 1,
+        views: 1,
         user: {
           username: "$owner.username",
           avatar: "$owner.avatar",
@@ -392,15 +396,25 @@ export const rocommendedVideos = asyncHandler(async (req, res) => {
         },
       },
     },
+    {
+      $facet: {
+        videos: [{ $skip: skip }, { $limit: limit }],
+        total: [{ $count: "total" }],
+      },
+    },
   ]);
+  const { videos, total } = data[0];
 
-  return res.status(200).json(new ApiResponse("success", 200, data));
+  return res
+    .status(200)
+    .json(new ApiResponse("success", 200, { videos, total: total[0] }));
 });
 
 export const searchVideo = asyncHandler(async (req, res) => {
   const { q, filter, sort } = req.query;
+  const page = parseInt(req.query.page, 10) || 1;
+  const limit = parseInt(req.query.limit, 10) || 10;
   const regex = new RegExp(q, "i");
-  console.log(regex, q);
   const data = await Video.aggregate([
     {
       $match: {
@@ -408,7 +422,65 @@ export const searchVideo = asyncHandler(async (req, res) => {
       },
     },
     {
-      $sort: { sort: 1 },
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "user",
+      },
+    },
+    { $unwind: "$user" },
+    {
+      $lookup: {
+        from: "likes",
+        localField: "_id",
+        foreignField: "video",
+        as: "totalLikes",
+      },
+    },
+    {
+      $addFields: {
+        totalLikes: {
+          $size: "$totalLikes",
+        },
+      },
+    },
+    {
+      $project: {
+        _id: 1,
+        duration: 1,
+        title: 1,
+        videoFile: 1,
+        thumbnail: 1,
+        isPublished: 1,
+        createdAt: 1,
+        views: 1,
+        user: {
+          id: "$user._id",
+          username: "$user.username",
+          avatar: "$user.avatar",
+        },
+
+        totalLikes: 1,
+      },
+    },
+    {
+      $facet: {
+        data: [
+          { $sort: 1 },
+          {
+            $skip: +(page - 1) * limit,
+          },
+          {
+            $limit: +limit,
+          },
+        ],
+        totalCount: [
+          {
+            $count: "totalCount",
+          },
+        ],
+      },
     },
   ]);
   return res.status(200).json(new ApiResponse("success", 200, data));

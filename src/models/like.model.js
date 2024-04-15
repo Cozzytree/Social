@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2"
+import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2";
 
 const likeSchema = new Schema(
   {
@@ -11,6 +11,10 @@ const likeSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "Comment",
     },
+    reply: {
+      type: Schema.Types.ObjectId,
+      ref: "Reply",
+    },
     tweet: {
       type: Schema.Types.ObjectId,
       ref: "Tweet",
@@ -18,10 +22,11 @@ const likeSchema = new Schema(
     likedBy: {
       type: Schema.Types.ObjectId,
       ref: "User",
+      required: true,
     },
   },
   { timestamps: true }
 );
 
-likeSchema.plugin(mongooseAggregatePaginate)
+likeSchema.plugin(mongooseAggregatePaginate);
 export const Like = mongoose.model("Like", likeSchema);

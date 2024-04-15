@@ -1,4 +1,4 @@
- import mongoose from "mongoose";
+import mongoose from "mongoose";
 import { Like } from "../models/like.model.js";
 import ApiError from "../utils/apiError.js";
 import ApiResponse from "../utils/apiResponse.js";
@@ -42,10 +42,31 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
 
   let data;
   if (!ifLikeExist) {
-    data = await Like.create([{ comment: commentId, likedBy: _id }]);
+    data = await Like.create({ comment: commentId, likedBy: _id });
   }
   if (ifLikeExist) {
     data = await Like.findOneAndDelete({ comment: commentId, likedBy: _id });
+  }
+
+  if (!data) throw new ApiError(401, "unknown");
+  return res.status(200).json(new ApiResponse(`done`, 200, data));
+});
+
+const toggleReplyLikes = asyncHandler(async (req, res) => {
+  const { replyId } = req.params;
+  const { _id } = req.user;
+
+  const ifLikeExist = await Like.findOne({
+    reply: commentId,
+    likedBy: _id,
+  });
+
+  let data;
+  if (!ifLikeExist) {
+    data = await Like.create({ reply: replyId, likedBy: _id });
+  }
+  if (ifLikeExist) {
+    data = await Like.findOneAndDelete({ reply: replyId, likedBy: _id });
   }
 
   if (!data) throw new ApiError(401, "unknown");
@@ -169,6 +190,7 @@ const totalVideoLikes = asyncHandler(async (req, res) => {
 });
 
 export {
+  toggleReplyLikes,
   toggleCommentLike,
   toggleTweetLike,
   getLikedVideos,
