@@ -377,7 +377,7 @@ const updateReply = asyncHandler(async (req, res) => {
 const deleteReply = asyncHandler(async (req, res) => {
   const { replyId } = req.params;
   if (!replyId) throw new ApiError(404, "invalid id");
-  const data = await Reply.findByIdAndDelete(_id);
+  const data = await Reply.findByIdAndDelete(replyId);
   if (!data) {
     throw new ApiError(404, "Error while deleting. Reply not found.");
   }

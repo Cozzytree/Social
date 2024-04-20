@@ -4,8 +4,8 @@ import { Tweet } from "../models/tweet.model.js";
 import ApiError from "../utils/apiError.js";
 import ApiResponse from "../utils/apiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { ObjectId } from "mongodb";
-import { User } from "../models/user.model.js";
+import { BSON, ObjectId } from "mongodb";
+import { uploadInCloudinary } from "../utils/cloudinary.js";
 
 //* Add tweet
 export const postTweet = asyncHandler(async (req, res) => {
@@ -15,7 +15,21 @@ export const postTweet = asyncHandler(async (req, res) => {
   const { content } = req.body;
   if (!content) throw new ApiError(401, "write something");
 
-  const data = await Tweet.create([{ content, owner: _id }]);
+  let images = [];
+  if (!req?.file) {
+    for (const file of req?.files?.images) {
+      try {
+        const res = await uploadInCloudinary(file.path);
+        console.log(res);
+        images.push({ image: res.secure_url, imagePublicId: res.public_id });
+      } catch (error) {
+        console.error("Error uploading image to Cloudinary:", error);
+        // Handle error appropriately, e.g., return an error response
+      }
+    }
+  }
+
+  const data = await Tweet.create([{ content, owner: _id, images: images }]);
 
   if (!data) throw new ApiError(401, "db error while uploading");
   return res
@@ -219,7 +233,7 @@ export const getAtweet = asyncHandler(async (req, res) => {
   const data = await Tweet.aggregate([
     {
       $match: {
-        _id: new mongoose.Types.ObjectId(tweetId),
+        _id: new BSON.ObjectId(tweetId),
       },
     },
     {
@@ -354,52 +368,12 @@ export const getCurrentUserTweets = asyncHandler(async (req, res) => {
     },
   ]);
 
-  const user = await User.aggregate([
-    {
-      $match: { _id: new ObjectId(_id) },
-    },
-    {
-      $lookup: {
-        from: "subscriptions",
-        localField: "_id",
-        foreignField: "channel",
-        as: "subbs",
-      },
-    },
-    {
-      $lookup: {
-        from: "videos",
-        localField: "_id",
-        foreignField: "owner",
-        as: "videos",
-      },
-    },
-    {
-      $addFields: {
-        totalSubbs: { $size: "$subbs" },
-        totalVideos: { $size: "$videos" },
-      },
-    },
-    {
-      $project: {
-        totalVideos: 1,
-        totalSubbs: 1,
-        username: 1,
-        avatar: 1,
-        coverImage: 1,
-        _id: 1,
-        bio: 1,
-      },
-    },
-  ]);
-
   const { paginated, totalCount } = tweets[0];
 
   return res.status(200).json(
     new ApiResponse("success", 200, {
       paginated,
       totalCount: totalCount[0],
-      user: user[0],
     })
   );
 });

@@ -2,6 +2,8 @@ import ApiResponse from "../utils/apiResponse.js";
 import ApiError from "../utils/apiError.js";
 import mongoose from "mongoose";
 import crypto from "crypto";
+import { Playlist } from "../models/playlist.model.js";
+import { User } from "../models/user.model.js";
 import { tokens } from "../middleware/tokenBucket.js";
 import { Video } from "../models/video.model.js";
 import { uploadInCloudinary } from "../utils/cloudinary.js";
@@ -10,7 +12,6 @@ import { deleteImage } from "../utils/cloudinaryDelete.js";
 import { Comment } from "../models/comment.model.js";
 import { ObjectId } from "mongodb";
 import { Like } from "../models/like.model.js";
-import { User } from "../models/user.model.js";
 
 const uploadStatusMap = new Map();
 
@@ -331,6 +332,7 @@ export const getAVideo = asyncHandler(async (req, res) => {
         updatedAt: 1,
         videoFile: 1,
         views: 1,
+        videoPublicId: 1,
         totalComments: 1,
         totalLikes: 1,
       },
@@ -411,79 +413,218 @@ export const rocommendedVideos = asyncHandler(async (req, res) => {
 });
 
 export const searchVideo = asyncHandler(async (req, res) => {
-  const { q, filter, sort } = req.query;
+  const { q } = req.query;
+  if (!q)
+    return res.status(404).json(new ApiResponse("invalid query", 404, {}));
+
+  const sort = req.query.sortBy || "title";
+  const sortField = {};
+  sortField[sort] = 1;
+  const type = req.query.type || "videos";
   const page = parseInt(req.query.page, 10) || 1;
   const limit = parseInt(req.query.limit, 10) || 10;
   const regex = new RegExp(q, "i");
-  const data = await Video.aggregate([
-    {
-      $match: {
-        title: regex,
-      },
-    },
-    {
-      $lookup: {
-        from: "users",
-        localField: "owner",
-        foreignField: "_id",
-        as: "user",
-      },
-    },
-    { $unwind: "$user" },
-    {
-      $lookup: {
-        from: "likes",
-        localField: "_id",
-        foreignField: "video",
-        as: "totalLikes",
-      },
-    },
-    {
-      $addFields: {
-        totalLikes: {
-          $size: "$totalLikes",
-        },
-      },
-    },
-    {
-      $project: {
-        _id: 1,
-        duration: 1,
-        title: 1,
-        videoFile: 1,
-        thumbnail: 1,
-        isPublished: 1,
-        createdAt: 1,
-        views: 1,
-        user: {
-          id: "$user._id",
-          username: "$user.username",
-          avatar: "$user.avatar",
-        },
 
-        totalLikes: 1,
-      },
+  let data = null;
+  let match = null;
+  let project = null;
+  let lookup = {
+    $lookup: {
+      from: "users",
+      localField: "owner",
+      foreignField: "_id",
+      as: "user",
     },
-    {
-      $facet: {
-        data: [
-          { $sort: 1 },
-          {
-            $skip: +(page - 1) * limit,
-          },
-          {
-            $limit: +limit,
-          },
-        ],
-        totalCount: [
-          {
-            $count: "totalCount",
-          },
-        ],
-      },
+  };
+  let facet = {
+    $facet: {
+      search: [
+        { $sort: sortField },
+        {
+          $skip: +(page - 1) * limit,
+        },
+        {
+          $limit: +limit,
+        },
+      ],
+      totalCount: [
+        {
+          $count: "totalCount",
+        },
+      ],
     },
-  ]);
-  return res.status(200).json(new ApiResponse("success", 200, data));
+  };
+
+  switch (type) {
+    case "videos":
+      match = {
+        $match: {
+          title: regex,
+        },
+      };
+      project = {
+        $project: {
+          _id: 1,
+          duration: 1,
+          title: 1,
+          videoFile: 1,
+          thumbnail: 1,
+          isPublished: 1,
+          createdAt: 1,
+          views: 1,
+          type: 1,
+          createdAt: 1,
+          updatedAT: 1,
+          user: {
+            id: "$user._id",
+            username: "$user.username",
+            avatar: "$user.avatar",
+          },
+        },
+      };
+      data = await Video.aggregate([
+        match,
+        lookup,
+        { $unwind: "$user" },
+        { $addFields: { type: "videos" } },
+        project,
+        facet,
+      ]);
+      break;
+    case "playlist":
+      match = { $match: { name: q, isPublic: true } };
+      project = {
+        $project: {
+          type: 1,
+          name: 1,
+          createdAt: 1,
+          updatedAT: 1,
+          videosCount: 1,
+          playlistVideos: {
+            $cond: {
+              if: { $isArray: "$playlistVideos" },
+              then: {
+                thumbnail: { $arrayElemAt: ["$playlistVideos.thumbnail", 0] },
+                _id: { $arrayElemAt: ["$playlistVideos._id", 0] },
+              },
+              else: "$playlistVideos",
+            },
+          },
+          user: {
+            id: "$user._id",
+            username: "$user.username",
+            avatar: "$user.avatar",
+          },
+        },
+      };
+      data = await Playlist.aggregate([
+        match,
+        lookup,
+        {
+          $lookup: {
+            from: "videos",
+            localField: "videos",
+            foreignField: "_id",
+            as: "playlistVideos",
+          },
+        },
+        {
+          $addFields: {
+            type: "playlist",
+            videosCount: {
+              $size: "$playlistVideos",
+            },
+          },
+        },
+        { $unwind: "$user" },
+        project,
+        facet,
+      ]);
+      break;
+    case "channel":
+      match = { $match: { username: q } };
+      lookup = {
+        $lookup: {
+          from: "subscriptions",
+          localField: "_id",
+          foreignField: "channel",
+          as: "subscribers",
+        },
+      };
+      project = {
+        $project: {
+          username: 1,
+          avatar: 1,
+          type: 1,
+          createdAt: 1,
+          updatedAT: 1,
+          isSubscribed: {
+            $cond: {
+              if: { $in: [req.user?._id, "$subscribers.subscriber"] },
+              then: true,
+              else: false,
+            },
+          },
+        },
+      };
+      data = await User.aggregate([
+        match,
+        lookup,
+        {
+          $addFields: {
+            type: "user",
+            subcribersCount: {
+              $size: "$subscribers",
+            },
+          },
+        },
+        project,
+        facet,
+      ]);
+      break;
+    default:
+      match = {
+        $match: {
+          title: regex,
+        },
+      };
+      project = {
+        $project: {
+          _id: 1,
+          duration: 1,
+          title: 1,
+          videoFile: 1,
+          thumbnail: 1,
+          isPublished: 1,
+          createdAt: 1,
+          views: 1,
+          type: 1,
+          createdAt: 1,
+          updatedAT: 1,
+          user: {
+            id: "$user._id",
+            username: "$user.username",
+            avatar: "$user.avatar",
+          },
+        },
+      };
+      data = await Video.aggregate([
+        match,
+        lookup,
+        { $unwind: "$user" },
+        { $addFields: { type: "videos" } },
+        project,
+        facet,
+      ]);
+      break;
+  }
+
+  const { search, totalCount } = data[0];
+  return res
+    .status(200)
+    .json(
+      new ApiResponse("success", 200, { search, totalCount: totalCount[0] })
+    );
 });
 
 // currennt user videos
@@ -516,6 +657,7 @@ export const getCurrentUserVideos = asyncHandler(async (req, res) => {
         videoFile: 1,
         thumbnail: 1,
         duration: 1,
+        description: 1,
         views: 1,
         createdAt: 1,
         title: 1,
@@ -536,34 +678,6 @@ export const getCurrentUserVideos = asyncHandler(async (req, res) => {
       },
     },
   ]);
-  const user = await User.aggregate([
-    {
-      $match: { _id: new ObjectId(_id) },
-    },
-    {
-      $lookup: {
-        from: "subscriptions",
-        localField: "_id",
-        foreignField: "channel",
-        as: "subbs",
-      },
-    },
-    {
-      $addFields: {
-        totalSubbs: { $size: "$subbs" },
-      },
-    },
-    {
-      $project: {
-        totalSubbs: 1,
-        username: 1,
-        avatar: 1,
-        coverImage: 1,
-        _id: 1,
-        bio: 1,
-      },
-    },
-  ]);
 
   const { videos, count } = data[0];
 
@@ -571,7 +685,6 @@ export const getCurrentUserVideos = asyncHandler(async (req, res) => {
     new ApiResponse("success", 200, {
       videos,
       count: count[0],
-      user: user[0],
     })
   );
 });

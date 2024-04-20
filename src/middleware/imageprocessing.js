@@ -1,13 +1,11 @@
-import { pipeline } from "stream";
-import { asyncHandler } from "../utils/asyncHandler.js";
-import ApiResponse from "../utils/apiResponse.js";
 import ApiError from "../utils/apiError.js";
 import fs from "fs";
 import sharp from "sharp";
+import { pipeline } from "stream";
+import { asyncHandler } from "../utils/asyncHandler.js";
 
 export const imageProcessor = asyncHandler(async (req, res, next) => {
-  console.log(req.file);
-  if (req.file.mimetype === "image/png") {
+  if (req?.file?.mimetype === "image/png") {
     //read file stream
     const readStream = fs.createReadStream(req.file.path);
 
@@ -16,10 +14,10 @@ export const imageProcessor = asyncHandler(async (req, res, next) => {
     const linkParts = outPutFilePath.split(".");
     linkParts.pop();
     linkParts.push("jpg");
-    const newPathNmae = linkParts.join(".");
+    const newPathName = linkParts.join(".");
 
     //write file stream stream
-    const writeStream = fs.createWriteStream(newPathNmae);
+    const writeStream = fs.createWriteStream(newPathName);
 
     pipeline(readStream, sharp().jpeg(), writeStream, (err) => {
       if (err) {
@@ -30,20 +28,32 @@ export const imageProcessor = asyncHandler(async (req, res, next) => {
         console.log("Pipeline succeeded");
       }
     });
-  } else {
-    for (const file of req.files) {
-      if (file.mimetype === "image/png") {
-        try {
-          const jpegBuffer = await sharp(fs.readFileSync(file.path))
-            .jpeg()
-            .toBuffer();
-          fs.writeFileSync(file.path, jpegBuffer); // Overwrite the file with JPEG data
-          file.mimetype = "image/jpeg";
-        } catch (err) {
-          if (err) {
-            return res
-              .status(400)
-              .json(new ApiResponse("error while processing image", 400, {}));
+  } else if (req?.files) {
+    for (const key in req.files) {
+      if (Object.hasOwnProperty.call(req.files, key)) {
+        const filesArray = req.files[key];
+        for (const file of filesArray) {
+          if (file?.mimetype === "image/png") {
+            //read file stream
+            const readStream = fs.createReadStream(file.path);
+
+            // modifying file path
+            const outPutFilePath = file.path;
+            const linkParts = outPutFilePath.split(".");
+            linkParts.pop();
+            linkParts.push("jpg");
+            const newPathName = linkParts.join(".");
+
+            //write file stream
+            const writeStream = fs.createWriteStream(newPathName);
+
+            pipeline(readStream, sharp().jpeg(), writeStream, (err) => {
+              if (err) {
+                throw new ApiError(400, "failed to process image");
+              } else {
+                fs.unlinkSync(file.path); // Delete the original PNG file
+              }
+            });
           }
         }
       }

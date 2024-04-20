@@ -3,6 +3,7 @@ import { v2 as cloudinary } from "cloudinary";
 import fs from "fs";
 import { deleteImage } from "./cloudinaryDelete.js";
 import { pipeline } from "stream";
+import ApiError from "./apiError.js";
 dotenv.config();
 
 cloudinary.config({
@@ -10,7 +11,6 @@ cloudinary.config({
   api_key: process.env.CLOUDINARY_APIKEY,
   api_secret: process.env.CLOUDINARY_APISECRET,
 });
-
 let response;
 
 export async function uploadInCloudinary(localFilepath) {
@@ -22,12 +22,12 @@ export async function uploadInCloudinary(localFilepath) {
       media_metadata: true,
     };
 
-    response = await new Promise((resolve, _) => {
+    response = await new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         uploadOptions,
         (error, result) => {
           if (error) {
-            throw new Error(error);
+            reject(new Error(error.message));
           } else {
             resolve(result);
           }
@@ -35,17 +35,23 @@ export async function uploadInCloudinary(localFilepath) {
       );
       const fileStream = fs.createReadStream(localFilepath);
       pipeline(fileStream, uploadStream, (error) => {
-        if (error) console.log("pipeline", error);
+        if (error) {
+          reject(new ApiError(500, "Error while uploading"));
+        }
       });
     });
 
+    // Delete the local file after successful upload
     fs.unlinkSync(localFilepath);
+
     return response;
   } catch (error) {
-    if (error) {
-      deleteImage(response?.public_id);
-    }
     console.error("Error uploading to Cloudinary:", error);
-    return null;
+    // If an error occurs, attempt to delete the uploaded image
+    if (response?.public_id) {
+      await deleteImage(response.public_id);
+    }
+    // Rethrow the error for higher-level handling
+    throw error;
   }
 }

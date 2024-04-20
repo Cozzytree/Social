@@ -21,6 +21,7 @@ import {
   deleteLinkFromBio,
   forgotPassword,
   resetPassword,
+  getCurrentUserDetails,
 } from "../controllers/user.controller.js";
 import { upload } from "../middleware/multer.middleware.js";
 import { mildJwt, verifyJwt } from "../middleware/auth.middleware.js";
@@ -36,6 +37,7 @@ router.route("/register").post(
 );
 router.route("/login").post(loginUser);
 router.route("/getcurrentUser").get(verifyJwt, getCurrentUser);
+router.route("/getCurrentUserDetails").get(verifyJwt, getCurrentUserDetails);
 router.route("/wh/:videoId").patch(mildJwt, updateWatchHistory);
 router.route("/clearWatchHistory").patch(verifyJwt, clearWHistory);
 router.route("/login/send-otp").post(loginWithOtp);

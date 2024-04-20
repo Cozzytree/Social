@@ -18,15 +18,17 @@ const router = Router();
 //* Video comments
 router.route("/v/:videoId").get(mildJwt, getVideoComments);
 router.route("/ac/:videoId").post(verifyJwt, addComment);
+
+// * update comment
 router.route("/uc/:commentId").patch(verifyJwt, updateComment);
 
-// delete comment 
+// delete comment
 router.route("/dc/:commentId").delete(verifyJwt, deleteComment);
 
 //* Tweet comments
 router.route("/tc/:tweetId").get(mildJwt, getTweetComments);
 router.route("/atc/:tweetId").post(verifyJwt, addTweetComment);
-router.route("/utc/:commentId").patch(verifyJwt, updateTweetComment);
+// router.route("/uc/:commentId").patch(verifyJwt, updateTweetComment);
 
 // reply
 router.route("/replyComment/:commentId").post(verifyJwt, replyComment);

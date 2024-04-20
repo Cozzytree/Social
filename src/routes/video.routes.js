@@ -45,7 +45,7 @@ router.route("/user_v/:userId").get(mildJwt, getUserVideo);
 router.route("/:videoId").get(mildJwt, getAVideo);
 router.route("/addView/:videoId").patch(updateView);
 router.route("/recommends/:videoId").get(rocommendedVideos);
-router.route("/s/query").get(searchVideo);
+router.route("/s/query").get(mildJwt, searchVideo);
 router.route("/cu/currentUserVideos").get(verifyJwt, getCurrentUserVideos);
 
 export default router;

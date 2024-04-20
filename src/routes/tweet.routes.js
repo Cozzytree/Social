@@ -9,10 +9,18 @@ import {
   getUserTweet,
   postTweet,
 } from "../controllers/tweet.controller.js";
+import { upload } from "../middleware/multer.middleware.js";
+import { imageProcessor } from "../middleware/imageprocessing.js";
 
 const router = Router();
 
-router.route("/addTweet").post(verifyJwt, postTweet);
+router
+  .route("/addTweet")
+  .post(
+    verifyJwt,
+    upload.fields([{ name: "images", maxCount: 10 }]),
+    postTweet
+  );
 router.route("/info/:tweetId").get(mildJwt, getAtweet);
 router.route("/d/:tweetId").delete(verifyJwt, deleteTweet);
 router.route("/editTweet/:tweetId").patch(verifyJwt, editTweet);

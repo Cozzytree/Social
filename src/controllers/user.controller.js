@@ -7,6 +7,7 @@ import { uploadInCloudinary } from "../utils/cloudinary.js";
 import { deleteImage } from "../utils/cloudinaryDelete.js";
 import mongoose from "mongoose";
 import nodemailer from "nodemailer";
+import { ObjectId } from "mongodb";
 
 const sendEmail = async (to, subject, text) => {
   if (!to || !subject || !text) {
@@ -173,7 +174,7 @@ export const loginUser = asyncHandler(async (req, res) => {
         accessToken,
         refreshToken,
       })
-    )
+    );
 });
 
 //*......................... log out user........................
@@ -698,4 +699,64 @@ export const resetPassword = asyncHandler(async (req, res) => {
   await user.save({ validateBeforeSave: false });
 
   return res.redirect("http://localhost:3000/login");
+});
+
+export const getCurrentUserDetails = asyncHandler(async (req, res) => {
+  const { _id } = req.user;
+  const match = {
+    $match: {
+      _id: new ObjectId(_id),
+    },
+  };
+
+  const subLookUp = {
+    $lookup: {
+      from: "subscriptions",
+      localField: "_id",
+      foreignField: "channel",
+      as: "subscribers",
+    },
+  };
+
+  const videoLookUp = {
+    $lookup: {
+      from: "videos",
+      localField: "_id",
+      foreignField: "owner",
+      as: "userVideos",
+    },
+  };
+
+  const addFields = {
+    $addFields: {
+      totalSubscribers: {
+        $size: "$subscribers",
+      },
+      totalVideos: {
+        $size: "$userVideos",
+      },
+    },
+  };
+
+  const project = {
+    $project: {
+      username: 1,
+      avatar: 1,
+      coverImage: 1,
+      fullName: 1,
+      totalSubscribers: 1,
+      totalVideos: 1,
+      bio: 1,
+    },
+  };
+
+  const data = await User.aggregate([
+    match,
+    subLookUp,
+    videoLookUp,
+    addFields,
+    project,
+  ]);
+
+  return res.status(201).json(new ApiResponse("success", 201, data[0]));
 });
