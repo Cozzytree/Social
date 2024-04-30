@@ -46,7 +46,7 @@ router.route("/clearWatchHistory").patch(verifyJwt, clearWHistory);
 
 // login with otp
 router.route("/login/send-otp").post(loginWithOtp);
-router.route("/login/verifyOtp").post(verifyOtp);
+router.route("/login/verifyOtp/:_id/:otp").get(verifyOtp);
 
 //* Secured routes
 router.route("/logout").post(verifyJwt, logoutUser);

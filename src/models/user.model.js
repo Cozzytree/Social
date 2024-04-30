@@ -36,9 +36,9 @@ const usersSchema = new Schema(
       type: Object,
       default: { token: null, expiry: null },
     },
-    otp: {
+    loginotp: {
       type: Object,
-      default: null,
+      default: { token: null, expiry: null },
     },
     resetPasswordToken: {
       type: String,

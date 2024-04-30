@@ -9,7 +9,7 @@ import { ObjectId } from "mongodb";
 export const initializePlaylist = asyncHandler(async (req, res) => {
   const { _id } = req.user;
   if (!_id) throw new ApiError(401, "unauthorized request");
-  const { description, name } = req.body;
+  const { description, name, isPublic, videoId } = req.body;
 
   if (!name) throw new ApiError(401, "name is required");
 
@@ -17,10 +17,17 @@ export const initializePlaylist = asyncHandler(async (req, res) => {
     owner: _id,
     description,
     name,
+    isPublic,
     videos: [],
   });
 
   if (!data) throw new ApiError(501, "error while creating playlist");
+
+  if (videoId) {
+    await Playlist.findByIdAndUpdate(data?._id, {
+      videos: { $addToSet: { videos: videoId } },
+    });
+  }
 
   return res
     .status(200)

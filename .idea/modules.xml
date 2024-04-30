@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/Social.iml" filepath="$PROJECT_DIR$/.idea/Social.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../freeflow_next/.idea/freeflow-next.iml" filepath="$PROJECT_DIR$/../freeflow_next/.idea/freeflow-next.iml" />
     </modules>
   </component>
 </project>

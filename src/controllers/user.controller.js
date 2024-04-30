@@ -3,13 +3,14 @@ import ApiError from "../utils/apiError.js";
 import crypto from "crypto";
 import mongoose from "mongoose";
 import nodemailer from "nodemailer";
+import bcrypt from "bcrypt";
 import { User } from "../models/user.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { uploadInCloudinary } from "../utils/cloudinary.js";
 import { deleteImage } from "../utils/cloudinaryDelete.js";
 import { ObjectId } from "mongodb";
 
-const sendEmail = async (to, subject, text, html) => {
+const sendEmail = async (to, subject, html, text) => {
   if (!to || !subject || !text) {
     throw new Error("Invalid email parameters");
   }
@@ -29,8 +30,8 @@ const sendEmail = async (to, subject, text, html) => {
     from: process.env.MY_EMAIL,
     to,
     subject,
-    html: html,
-    text: text,
+    html,
+    text
   };
 
   try {
@@ -498,7 +499,7 @@ export const getUserChannelProfile = asyncHandler(async (req, res) => {
           $cond: {
             if: {
               $in: [
-               new ObjectId(req.user?._id || ""),
+                new ObjectId(req.user?._id || ""),
                 "$subscribers.subscriber",
               ],
             },
@@ -599,58 +600,48 @@ export const updateWatchHistory = asyncHandler(async (req, res) => {
 //login with opt
 export const loginWithOtp = asyncHandler(async (req, res) => {
   const { email } = req.body;
-
-  function generateOTP() {
-    let otp = "";
-    for (let i = 0; i < 6; i++) {
-      const random = Math.floor(Math.random() * 9 + 1);
-      otp += random;
-    }
-    return +otp;
+  if (!email || typeof email !== 'string') {
+    throw new ApiError(404, "Invalid email or not found");
   }
 
-  const otp = generateOTP();
-
+  const randomOtp = crypto.randomBytes(6).toString("hex");
   const user = await User.findOneAndUpdate(
     { email },
-    { otp: { code: otp, createdAt: new Date() } },
+    { loginotp: { token: randomOtp, expiry: Date.now() + 3600000 } },
     { upsert: true, new: true }
   );
+  if (!user) throw new ApiError(404, "email not found");
 
-  sendEmail(email, "OTP Verification", `Your OTP is: ${otp}`);
-
-  setTimeout(
-    async () => {
-      await User.findOneAndUpdate({ email }, { otp: null });
-      console.log("OTP expired for user:", email);
-    },
-    10 * 60 * 1000
-  );
-
-  res.status(200).json(new ApiResponse("OTP sent successfully", 200, {}));
+ await sendEmail(
+    email,
+    "Login",
+    `<a href="http://localhost:3000/login/login_verify/${user?._id}_${randomOtp}">Login</a>`,
+     "Click to login"
+  ).catch((err) => {if(err) {
+   throw new ApiError(500, "something went wrong");}});
+  console.log(user)
+ return  res.status(200).json(new ApiResponse("OTP sent successfully", 200, {}));
 });
 export const verifyOtp = asyncHandler(async (req, res) => {
-  const { email, otp } = req.body;
+  const { _id, otp } = req.params;
 
-  const user = await User.findOne({ email }).select("-password -accessToken");
+  if (!_id || !otp) throw new ApiError(404, "otp invalid ot not found");
 
-  if (!user?.otp) {
+  const user = await User.findOne({
+    loginotp: {token: otp, expiry: {$gt: Date.now()}},
+  }).select("-password -accessToken -watchHistory -refreshToken -resetPasswordExpires -accessToken -refreshToken -verifyToken -avatar");
+
+
+  if (!user) {
     throw new ApiError(404, "User or OTP not found");
-  }
-
-  const storedOtp = user?.otp;
-  if (
-    otp !== storedOtp?.code ||
-    Date.now() - storedOtp.createdAt.getTime() > 10 * 60 * 1000
-  ) {
-    throw new ApiError(401, "Invalid OTP or OTP expired");
   }
 
   const { accessToken, refreshToken } = await generate_AccessAnd_RefreshToken(
     user?._id
   );
 
-  await User.findOneAndUpdate({ email }, { otp: null });
+  user.loginotp = { token: null, expiry: null };
+  user.save({ validateBeforeSave: false });
 
   const options = {
     httpOnly: true,

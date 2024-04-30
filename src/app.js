@@ -23,11 +23,12 @@ app.use(
     optionsSuccessStatus: 201,
     exposedHeaders: "Set-Cookie",
     methods: ["GET", "PUT", "POST", "DELETE", "OPTIONS", "PATCH"],
-    allowedHeaders: [
-      "Access-Control-Allow-Origin",
-      "Content-Type",
-      "Authorization",
-    ],
+      allowedHeaders: [
+          "Allow-Control-Allow-Headers",
+          "Access-Control-Allow-Origin",
+          "Content-Type",
+          "Authorization",
+      ],
   })
 );
 app.use((err, _, res, next) => {
