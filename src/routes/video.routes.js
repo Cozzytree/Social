@@ -4,16 +4,16 @@ import { checkTokenExists } from "../middleware/tokenBucket.js";
 
 import {
   deleteVideo,
-  getAVideo,
   getAllVideos,
+  getAVideo,
+  getCurrentUserVideos,
   getUserVideo,
+  rocommendedVideos,
+  searchVideo,
   updateThumbnail,
   updateVideoTandD,
   updateView,
   uploadVideo,
-  rocommendedVideos,
-  searchVideo,
-  getCurrentUserVideos,
 } from "../controllers/video.controller.js";
 import { upload } from "../middleware/multer.middleware.js";
 import { imageProcessor } from "../middleware/imageprocessing.js";

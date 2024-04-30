@@ -201,7 +201,9 @@ export const getAllVideos = asyncHandler(async (req, res) => {
     },
   ]);
 
-  return res.status(200).json(new ApiResponse("hehe", 200, data[0]));
+  return res
+    .status(200)
+    .json(new ApiResponse("videos fetched successfully", 200, data[0]));
 });
 
 export const updateThumbnail = asyncHandler(async (req, res) => {

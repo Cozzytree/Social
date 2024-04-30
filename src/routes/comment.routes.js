@@ -11,8 +11,8 @@ import {
   replyComment,
   updateComment,
   updateReply,
-  updateTweetComment,
 } from "../controllers/commmnt.controller.js";
+
 const router = Router();
 
 //* Video comments

@@ -3,8 +3,19 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import multer from "multer";
 import fs from "fs";
+//*routes import
+import userRouter from "../src/routes/user.routes.js";
+import commentRouter from "../src/routes/comment.routes.js";
+import tweetRouter from "../src/routes/tweet.routes.js";
+import videoRouter from "../src/routes/video.routes.js";
+import likeRouter from "../src/routes/like.routes.js";
+import subscribe from "../src/routes/subscription.routes.js";
+import playlist from "../src/routes/playlist.routes.js";
+import ApiResponse from "./utils/apiResponse.js";
 
 const app = express();
+
+// middlewares
 app.use(
   cors({
     origin: "http://localhost:3000",
@@ -19,7 +30,6 @@ app.use(
     ],
   })
 );
-
 app.use((err, _, res, next) => {
   if (err instanceof multer.MulterError) {
     if (err.file) {
@@ -32,7 +42,22 @@ app.use((err, _, res, next) => {
     next();
   }
 });
-
+function timeoutMiddleware(req, res, next) {
+  // Set the timeout duration (in milliseconds)
+  const timeoutDuration = 20000;
+  // Set a timeout for the request
+  const timeout = setTimeout(() => {
+    // If the timeout occurs, respond with a timeout error
+    return res.status(504).json(new ApiResponse("server timed out", 504, {}));
+  }, timeoutDuration);
+  // Call next() to pass the request to the next middleware/route handler
+  next();
+  // Clear the timeout when the response is finished or an error occurs
+  res.on("finish", () => {
+    clearTimeout(timeout);
+  });
+}
+app.use(timeoutMiddleware);
 app.use(express.json({ limit: "15kb" }));
 app.use(express.urlencoded({ extended: true, limit: "15kb" }));
 app.use(express.static("public"));
@@ -55,16 +80,6 @@ app.use(cookieParser());
 //   res.render("error");
 //   next();
 // });
-
-//*routes import
-import userRouter from "../src/routes/user.routes.js";
-import commentRouter from "../src/routes/comment.routes.js";
-import tweetRouter from "../src/routes/tweet.routes.js";
-import videoRouter from "../src/routes/video.routes.js";
-import likeRouter from "../src/routes/like.routes.js";
-import subscribe from "../src/routes/subscription.routes.js";
-import playlist from "../src/routes/playlist.routes.js";
-import ApiResponse from "./utils/apiResponse.js";
 
 //*routes declaration
 

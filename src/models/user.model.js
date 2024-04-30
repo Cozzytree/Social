@@ -1,4 +1,4 @@
-import mongoose, { Schema, mongo } from "mongoose";
+import mongoose, { Schema } from "mongoose";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 
@@ -12,6 +12,7 @@ const usersSchema = new Schema(
       trim: true,
       index: true,
     },
+    verified: { type: Boolean, default: false },
     role: { type: String, default: "regular" },
     email: { type: String, required: true, unique: true },
     fullName: { type: String, required: true, index: true },
@@ -30,6 +31,10 @@ const usersSchema = new Schema(
           url: { type: String, required: false },
         },
       ],
+    },
+    verifyToken: {
+      type: Object,
+      default: { token: null, expiry: null },
     },
     otp: {
       type: Object,
@@ -81,5 +86,4 @@ usersSchema.methods.generateRefreshToken = function () {
     }
   );
 };
-
 export const User = mongoose.model("User", usersSchema);

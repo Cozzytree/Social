@@ -10,7 +10,6 @@ import {
   postTweet,
 } from "../controllers/tweet.controller.js";
 import { upload } from "../middleware/multer.middleware.js";
-import { imageProcessor } from "../middleware/imageprocessing.js";
 
 const router = Router();
 

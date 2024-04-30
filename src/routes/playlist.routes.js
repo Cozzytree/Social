@@ -2,18 +2,19 @@ import { Router } from "express";
 import { verifyJwt } from "../middleware/auth.middleware.js";
 import {
   addVideoToPlaylist,
+  currentUserPlaylists,
   deletePlaylist,
   deleteVideofromPL,
-  getPlaylist,
-  editPlaylistName,
   editDescription,
+  editPlaylistName,
+  getPlaylist,
+  getPublicPlaylists,
+  getUserPlaylistNames,
   getUserPlaylists,
   initializePlaylist,
-  getUserPlaylistNames,
   toggleIsPublic,
-  getPublicPlaylists,
-  currentUserPlaylists,
 } from "../controllers/playlist.controller.js";
+
 const router = Router();
 
 router.route("/getAplaylist/:playlistId").get(verifyJwt, getPlaylist);

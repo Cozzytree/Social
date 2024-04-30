@@ -1,5 +1,4 @@
 import ApiError from "../utils/apiError.js";
-import { asyncHandler } from "../utils/asyncHandler.js";
 
 export const checkVideoSize = (bytes) => {
   const fileSizeInBytes = bytes;

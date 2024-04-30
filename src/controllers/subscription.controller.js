@@ -25,7 +25,7 @@ export const updateSubscribe = asyncHandler(async (req, res) => {
       channel: channelId,
     });
   }
-  if (!data) throw new ApiError(501, "server error");
+  if (!data) throw new ApiError(404, "error while storing");
 
   return res.status(200).json(new ApiResponse("success", 200, data));
 });

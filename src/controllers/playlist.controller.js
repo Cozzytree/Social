@@ -4,7 +4,6 @@ import ApiResponse from "../utils/apiResponse.js";
 import { Playlist } from "../models/playlist.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ObjectId } from "mongodb";
-import { User } from "../models/user.model.js";
 
 //create a playlist
 export const initializePlaylist = asyncHandler(async (req, res) => {
@@ -433,52 +432,12 @@ export const currentUserPlaylists = asyncHandler(async (req, res) => {
     },
   ]);
 
-  const user = await User.aggregate([
-    {
-      $match: { _id: new ObjectId(_id) },
-    },
-    {
-      $lookup: {
-        from: "subscriptions",
-        localField: "_id",
-        foreignField: "channel",
-        as: "subbs",
-      },
-    },
-    {
-      $lookup: {
-        from: "videos",
-        localField: "_id",
-        foreignField: "owner",
-        as: "videos",
-      },
-    },
-    {
-      $addFields: {
-        totalSubbs: { $size: "$subbs" },
-        totalVideos: { $size: "$videos" },
-      },
-    },
-    {
-      $project: {
-        totalVideos: 1,
-        totalSubbs: 1,
-        username: 1,
-        avatar: 1,
-        coverImage: 1,
-        _id: 1,
-        bio: 1,
-      },
-    },
-  ]);
-
   const { playlist, total } = data[0];
 
   return res.status(200).json(
     new ApiResponse("success", 200, {
       playlist,
       total: total[0],
-      user: user[0],
     })
   );
 });
