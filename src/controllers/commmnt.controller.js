@@ -326,6 +326,7 @@ const getReplies = asyncHandler(async (req, res) => {
         content: 1,
         createdAt: 1,
         updatedAt: 1,
+        replyTo: 1,
         "user.username": 1,
         "user._id": 1,
         "user.avatar": 1,

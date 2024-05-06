@@ -13,13 +13,7 @@ import { upload } from "../middleware/multer.middleware.js";
 
 const router = Router();
 
-router
-  .route("/addTweet")
-  .post(
-    verifyJwt,
-    upload.fields([{ name: "images", maxCount: 10 }]),
-    postTweet
-  );
+router.route("/addTweet").post(verifyJwt, postTweet);
 router.route("/info/:tweetId").get(mildJwt, getAtweet);
 router.route("/d/:tweetId").delete(verifyJwt, deleteTweet);
 router.route("/editTweet/:tweetId").patch(verifyJwt, editTweet);

@@ -19,7 +19,7 @@ const router = Router();
 
 router.route("/getAplaylist/:playlistId").get(verifyJwt, getPlaylist);
 router.route("/cu/currentUserPlaylists").get(verifyJwt, currentUserPlaylists);
-router.route("/getPlaylists/:videoId").get(verifyJwt, getUserPlaylists);
+router.route("/getPlaylists/:videoId/:userId").get(verifyJwt, getUserPlaylists);
 router.route("/getPlaylistNames").get(verifyJwt, getUserPlaylistNames);
 router.route("/createPlaylist").put(verifyJwt, initializePlaylist);
 router.route("/deletePlaylist/:playlistId").delete(verifyJwt, deletePlaylist);

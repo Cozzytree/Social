@@ -208,11 +208,10 @@ export const deleteVideofromPL = asyncHandler(async (req, res) => {
 
 //get user playlists with isExist for the video
 export const getUserPlaylists = asyncHandler(async (req, res) => {
-  const { _id } = req.user;
-  const { videoId } = req.params;
+  const { videoId, userId } = req.params;
   const matchStage = {
     $match: {
-      owner: new mongoose.Types.ObjectId(_id),
+      owner: new ObjectId(userId),
     },
   };
 
@@ -221,7 +220,7 @@ export const getUserPlaylists = asyncHandler(async (req, res) => {
       exist: {
         $cond: {
           if: {
-            $in: [new mongoose.Types.ObjectId(videoId) || "", "$videos"],
+            $in: [new ObjectId(videoId) || "", "$videos"],
           },
           then: true,
           else: false,

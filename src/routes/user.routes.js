@@ -22,6 +22,8 @@ import {
   updateUserAvatar,
   updateUserCoverImage,
   updateWatchHistory,
+  verifyEmail,
+  verifyEmailOtp,
   verifyOtp,
   verifyUser,
 } from "../controllers/user.controller.js";
@@ -46,10 +48,15 @@ router.route("/clearWatchHistory").patch(verifyJwt, clearWHistory);
 
 // login with otp
 router.route("/login/send-otp").post(loginWithOtp);
-router.route("/login/verifyOtp/:_id/:otp").get(verifyOtp);
+router.route("/login/verifyOtp").post(verifyOtp);
 
-//* Secured routes
+
+// logout
 router.route("/logout").post(verifyJwt, logoutUser);
+
+//verifyEmail 
+router.route("/verify_email").get(verifyJwt , verifyEmail)
+router.route("/verifyEmailOtp/:token").patch(verifyJwt, verifyEmailOtp)
 
 //change password
 router.route("/updatepassword").post(verifyJwt, changeCurrentPassword);

@@ -3,7 +3,6 @@ import ApiError from "../utils/apiError.js";
 import crypto from "crypto";
 import mongoose from "mongoose";
 import nodemailer from "nodemailer";
-import bcrypt from "bcrypt";
 import { User } from "../models/user.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { uploadInCloudinary } from "../utils/cloudinary.js";
@@ -31,7 +30,7 @@ const sendEmail = async (to, subject, html, text) => {
     to,
     subject,
     html,
-    text
+    text,
   };
 
   try {
@@ -58,6 +57,7 @@ async function generate_AccessAnd_RefreshToken(id) {
     const accessToken = user.generateAccessToken();
     const refreshToken = user.generateRefreshToken();
     user.refreshToken = refreshToken;
+    user.accessToken = accessToken;
     await user.save({ validateBeforeSave: false });
 
     return { accessToken, refreshToken };
@@ -197,7 +197,7 @@ export const loginUser = asyncHandler(async (req, res) => {
 
   // Modifying the object that needs to be sent as a response
   const userObject = await User.findById(user._id).select(
-    "-password -accessToken"
+    "-password -accessToken -watchHistory"
   );
 
   // Response
@@ -212,7 +212,12 @@ export const loginUser = asyncHandler(async (req, res) => {
   res
     .status(200)
     .cookie("accessToken", accessToken, options)
-    .cookie("refreshToken", refreshToken, options)
+    .cookie("refreshToken", refreshToken, {
+      secure: true,
+      sameSite: "None",
+      domain: "localhost",
+      path: "/",
+    })
     .json(
       new ApiResponse("logged in Successfully", 200, {
         user: userObject,
@@ -258,22 +263,23 @@ export const refreshAccessToken = asyncHandler(async (req, res) => {
     if (!getVerifiesUser) throw new ApiError(401, "Invalid user token");
 
     if (incomingRefToken !== getVerifiesUser?.refreshToken) {
-      throw new ApiError(401, "Expired refresh token");
+      throw new ApiError(401, "Invalid token");
     }
 
-    const { accessToken, newrefreshToken } =
-      await generate_AccessAnd_RefreshToken(getVerifiesUser._id);
+    const { accessToken, refreshToken } = await generate_AccessAnd_RefreshToken(
+      getVerifiesUser._id
+    );
 
     const options = { httpOnly: true, secure: true };
 
     res
       .status(200)
       .cookie("accessToken", accessToken, options)
-      .cookie("refreshToken", newrefreshToken, options)
+      .cookie("refreshToken", refreshToken, options)
       .json(
         new ApiResponse("successfully refreshed token", 200, {
           accessToken,
-          refreshToken: newrefreshToken,
+          refreshToken,
         })
       );
   } catch (error) {
@@ -600,48 +606,57 @@ export const updateWatchHistory = asyncHandler(async (req, res) => {
 //login with opt
 export const loginWithOtp = asyncHandler(async (req, res) => {
   const { email } = req.body;
-  if (!email || typeof email !== 'string') {
+  if (!email || typeof email !== "string") {
     throw new ApiError(404, "Invalid email or not found");
   }
 
   const randomOtp = crypto.randomBytes(6).toString("hex");
   const user = await User.findOneAndUpdate(
     { email },
-    { loginotp: { token: randomOtp, expiry: Date.now() + 3600000 } },
+    { loginToken: randomOtp, loginExpiry: Date.now() + 3600000 },
     { upsert: true, new: true }
   );
   if (!user) throw new ApiError(404, "email not found");
 
- await sendEmail(
+  await sendEmail(
     email,
     "Login",
-    `<a href="http://localhost:3000/login/login_verify/${user?._id}_${randomOtp}">Login</a>`,
-     "Click to login"
-  ).catch((err) => {if(err) {
-   throw new ApiError(500, "something went wrong");}});
-  console.log(user)
- return  res.status(200).json(new ApiResponse("OTP sent successfully", 200, {}));
+    `<p>Yout otp ${randomOtp}</p>`,
+    "Click to login"
+  ).catch((err) => {
+    if (err) {
+      throw new ApiError(500, "something went wrong");
+    }
+  });
+  console.log(user);
+  return res
+    .status(200)
+    .json(new ApiResponse("OTP sent successfully", 200, {}));
 });
 export const verifyOtp = asyncHandler(async (req, res) => {
-  const { _id, otp } = req.params;
+  const { otp } = req.body;
 
-  if (!_id || !otp) throw new ApiError(404, "otp invalid ot not found");
+  if (!otp) throw new ApiError(404, "otp invalid or not found");
 
   const user = await User.findOne({
-    loginotp: {token: otp, expiry: {$gt: Date.now()}},
-  }).select("-password -accessToken -watchHistory -refreshToken -resetPasswordExpires -accessToken -refreshToken -verifyToken -avatar");
-
+    loginToken: otp,
+    loginExpiry: { $gt: Date.now() },
+  }).select(
+    "-password -accessToken -watchHistory -refreshToken -resetPasswordExpires -accessToken -refreshToken -verifyToken"
+  );
 
   if (!user) {
     throw new ApiError(404, "User or OTP not found");
   }
 
-  const { accessToken, refreshToken } = await generate_AccessAnd_RefreshToken(
-    user?._id
-  );
+  const accessToken = user.generateAccessToken();
+  const refreshToken = user.generateRefreshToken();
 
-  user.loginotp = { token: null, expiry: null };
-  user.save({ validateBeforeSave: false });
+  user.accessToken = accessToken;
+  user.refreshToken = refreshToken;
+  user.loginToken = null;
+  user.loginExpiry = null;
+  await user.save({ validateBeforeSave: false });
 
   const options = {
     httpOnly: true,
@@ -651,13 +666,18 @@ export const verifyOtp = asyncHandler(async (req, res) => {
     path: "/",
   };
 
-  return res
+  res
     .status(200)
     .cookie("accessToken", accessToken, options)
-    .cookie("refreshToken", refreshToken, options)
+    .cookie("refreshToken", refreshToken, {
+      secure: true,
+      sameSite: "None",
+      domain: "localhost",
+      path: "/",
+    })
     .json(
       new ApiResponse("logged in Successfully", 200, {
-        user: user,
+        user,
         accessToken,
         refreshToken,
       })
@@ -799,7 +819,8 @@ export const forgotPassword = asyncHandler(async (req, res) => {
   await sendEmail(
     email,
     "Reset Password",
-    `<a href="http://localhost:3000/reset_password/${token}">Click here to reset your password</a>`
+    `<a href="http://localhost:3000/reset_password/${token}">Click here to reset your password</a>`,
+    "reset password"
   );
   return res.status(200).json(new ApiResponse("verify email", 200, {}));
 });
@@ -818,6 +839,53 @@ export const resetPassword = asyncHandler(async (req, res) => {
   user.resetPasswordToken = null;
   user.resetPasswordExpires = null;
   await user.save({ validateBeforeSave: false });
-
   res.redirect("http://localhost:3000/login");
+});
+
+//verify email
+export const verifyEmail = asyncHandler(async (req, res) => {
+  const { email, _id } = req.user;
+  console.log(email, _id);
+
+  const random = crypto.randomBytes(6).toString("hex");
+  const user = await User.findOneAndUpdate(
+    { _id },
+    {
+      verifyToken: { token: random, expiry: Date.now() + 360000 },
+    }
+  );
+  if (!user) throw new ApiError(404, "user not found");
+
+  await sendEmail(
+    email,
+    "Verify Email",
+    `<p>Yout otp ${random}</p>`,
+    "otp send"
+  );
+  return res
+    .status(201)
+    .json(new ApiResponse("otp send successfully", 201, {}));
+});
+export const verifyEmailOtp = asyncHandler(async (req, res) => {
+  const { _id } = req.user;
+  const { token } = req.params;
+  if (token.length === 0)
+    throw new ApiError(404, "invalid token or token not found");
+
+  const user = await User.findById(_id).select("-password -watchHistory");
+
+  // check token
+  if (
+    token !== user?.verifyToken?.token ||
+    user?.verifyToken?.expiry > Date.now()
+  )
+    throw new ApiError(401, "invalid token or expired");
+
+  //seting the toek and expiry to null
+  user.verifyToken.token = null;
+  user.verifyToken.expiry = null;
+  user.verified = true;
+  user.save({ validateBeforeSave: false });
+
+  return res.status(201).json(new ApiResponse("user verified", 201, {}));
 });

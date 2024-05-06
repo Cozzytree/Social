@@ -15,21 +15,7 @@ export const postTweet = asyncHandler(async (req, res) => {
   const { content } = req.body;
   if (!content) throw new ApiError(401, "write something");
 
-  let images = [];
-  if (!req?.file) {
-    for (const file of req?.files?.images) {
-      try {
-        const res = await uploadInCloudinary(file.path);
-        console.log(res);
-        images.push({ image: res.secure_url, imagePublicId: res.public_id });
-      } catch (error) {
-        console.error("Error uploading image to Cloudinary:", error);
-        // Handle error appropriately, e.g., return an error response
-      }
-    }
-  }
-
-  const data = await Tweet.create([{ content, owner: _id, images: images }]);
+  const data = await Tweet.create([{ content, owner: _id }]);
 
   if (!data) throw new ApiError(401, "db error while uploading");
   return res

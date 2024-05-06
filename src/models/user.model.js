@@ -22,7 +22,8 @@ const usersSchema = new Schema(
     coverImage: { type: String },
     coverImagePublicId: { type: String, required: true },
     watchHistory: [{ type: Schema.Types.ObjectId, ref: "Video" }],
-    refreshToken: { type: String },
+    refreshToken: { type: String, default: "" },
+    accessToken: { type: String, default: "" },
     bio: {
       text: { type: String, required: false },
       links: [
@@ -36,15 +37,13 @@ const usersSchema = new Schema(
       type: Object,
       default: { token: null, expiry: null },
     },
-    loginotp: {
-      type: Object,
-      default: { token: null, expiry: null },
-    },
+    loginToken: { type: String },
+    loginExpiry: { type: Date },
     resetPasswordToken: {
       type: String,
       default: null,
     },
-    resetPasswordExpires: { type: Date, default: null },
+    resetPasswordExpires: { type: Date },
   },
   { timestamps: true }
 );
@@ -67,6 +66,7 @@ usersSchema.methods.generateAccessToken = function () {
       avatar: this.avatar,
       fullName: this.fullName,
       username: this.username,
+      email: this.email,
     },
     process.env.ACCESS_TOKEN_SECRET,
     {
