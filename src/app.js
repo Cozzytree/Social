@@ -44,6 +44,9 @@ app.use((err, _, res, next) => {
   }
 });
 function timeoutMiddleware(req, res, next) {
+  const urls = ["/api/v1/users/update_coverimage"];
+
+  if (urls.includes(req.url)) next();
   // Set the timeout duration (in milliseconds)
   const timeoutDuration = 20000;
   // Set a timeout for the request
@@ -58,7 +61,7 @@ function timeoutMiddleware(req, res, next) {
     clearTimeout(timeout);
   });
 }
-app.use(timeoutMiddleware);
+// app.use(timeoutMiddleware);
 app.use(express.json({ limit: "15kb" }));
 app.use(express.urlencoded({ extended: true, limit: "15kb" }));
 app.use(express.static("public"));

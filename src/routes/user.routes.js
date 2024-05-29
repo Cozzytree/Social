@@ -64,13 +64,13 @@ router.route("/confirm_update_password/:token/:userId/:newPass").post(confirm_up
 
 router.route("/refreshToken").post(refreshAccessToken);
 router.route("/update_userdetails").patch(verifyJwt, updateAccountDetails);
-router.route("/:userId").get(mildJwt, getUserChannelProfile);
+router.route("/userProfile/:userId").get(mildJwt, getUserChannelProfile);
 router
   .route("/update_avatar")
   .patch(verifyJwt, upload.single("avatar"), updateUserAvatar);
 router
   .route("/update_coverimage")
-  .patch(verifyJwt, upload.single("coverImage"), updateUserCoverImage);
+  .post(verifyJwt, upload.single("coverImage"), updateUserCoverImage);
 router.route("/wh/watch_History").get(verifyJwt, getWatchHistory);
 router.route("/ud/user_details").get(verifyJwt, settings);
 router.route("/updateBioText").post(verifyJwt, updateBioText);
